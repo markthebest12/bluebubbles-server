@@ -1,0 +1,12 @@
+# .gitleaks.toml
+# Only scan commits after our fork date to avoid flagging pre-existing upstream history
+title = "BlueBubbles Server Fork - Gitleaks Config"
+
+[allowlist]
+  description = "Global allowlist"
+  # Skip commits before our fork date
+  commits = []
+  paths = [
+    "package-lock.json",
+    '''.*\.min\.js'''
+  ]
