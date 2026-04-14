@@ -110,7 +110,7 @@ export class Message {
     guid: string;
 
     @Column({ type: "text", nullable: true })
-    text: string;
+    text: string | null;
 
     @Column({ type: "integer", nullable: true, default: 0 })
     replace: number;

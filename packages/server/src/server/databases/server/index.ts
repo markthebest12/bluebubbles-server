@@ -257,7 +257,7 @@ export class ServerRepository extends EventEmitter {
         if (isEmpty(entries)) return false;
 
         // Check if any have a matching tempGUID
-        entries = entries.filter(item => item.tempGuid === tempGuid || item.text.startsWith(tempGuid));
+        entries = entries.filter(item => item.tempGuid === tempGuid || item.text?.startsWith(tempGuid));
 
         // Return if there are tempGUID matches
         return isNotEmpty(entries);
