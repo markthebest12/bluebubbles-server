@@ -3,12 +3,15 @@
 module.exports = {
     "productName": "BlueBubbles",
     "appId": "com.BlueBubbles.BlueBubbles-Server",
-    "npmRebuild": false,
+    "npmRebuild": true,
     "directories": {
         "output": "releases",
         "buildResources": "appResources"
     },
     "asar": true,
+    "asarUnpack": [
+        "**/*.node"
+    ],
     "extraResources": [
         "appResources"
     ],
