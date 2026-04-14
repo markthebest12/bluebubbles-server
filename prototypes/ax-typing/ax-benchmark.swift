@@ -153,12 +153,11 @@ func main() {
     print("Testing AX while Messages is NOT foreground...")
     print("(If Messages IS foreground, minimize it and re-run to test background mode)")
 
-    // Summary
+    // Summary (derived from actual benchmark results)
     print("\n--- Summary ---")
-    print("Compose field found: YES (id=messageBodyField)")
-    print("Focus works: YES")
-    print("SetValue works: YES")
+    print("Compose field found: \(composeField != nil ? "YES (id=messageBodyField)" : "NO")")
     print("Background operation: \(app.isActive ? "NEEDS TESTING (Messages is foreground)" : "WORKS")")
+    print("(Focus and SetValue pass/fail counts are shown in benchmark output above)")
     print()
     print("CRITICAL QUESTION: Does SetValue trigger the typing indicator on the remote end?")
     print("This requires manual verification with a second device.")

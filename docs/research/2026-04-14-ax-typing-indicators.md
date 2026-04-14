@@ -10,6 +10,14 @@ macOS 26 Tahoe killed Private API typing indicators. The DYLIB injection path us
 
 The hypothesis: the macOS Accessibility API (`AXUIElement`) can interact with Messages.app's compose text field without injection or private entitlements, and setting text in that field may trigger a typing indicator on the remote end.
 
+## Test Environment
+
+- **Machine:** Mac Mini (Apple Silicon)
+- **macOS:** 26.0 Tahoe (beta)
+- **Messages.app:** Built-in (Tahoe release)
+- **Swift:** Xcode toolchain (swift 6.x)
+- **Run context:** Messages.app running in background, conversation selected
+
 ## Prototype Results
 
 ### What Works
@@ -99,9 +107,9 @@ Could use `node-addon-api` to wrap AXUIElement calls directly. Better performanc
 
 ## Limitations
 
-1. **Conversation must be selected.** AX can only interact with the currently-visible compose field. If the user has a different conversation open (or no conversation), the typing indicator would go to the wrong chat or fail. **Mitigation:** Use AppleScript to select the correct conversation first, then AX to set text.
+1. **Conversation must be selected + race condition.** AX can only interact with the currently-visible compose field. If the user has a different conversation open (or no conversation), the typing indicator would go to the wrong chat or fail. **Mitigation:** Use AppleScript to select the correct conversation first, then AX to set text. **Race risk:** If the user switches conversations between the AppleScript selection and the AX SetValue, the typing indicator goes to the wrong recipient. Production code must serialize AX operations and validate the active conversation before each SetValue.
 
-2. **Single compose field.** Messages.app has one compose field at a time. Concurrent typing indicators for multiple conversations are not possible via this approach.
+2. **Single compose field — no concurrency.** Messages.app has one compose field at a time. Concurrent typing indicators for multiple conversations are not possible. The integration layer must serialize requests (queue or mutex) to prevent concurrent calls from racing.
 
 3. **Accessibility permission is manual.** Users must grant Accessibility permission in System Settings. Unlike Full Disk Access (which can be guided), this requires navigating to a specific pane and toggling a switch.
 
@@ -115,6 +123,10 @@ Could use `node-addon-api` to wrap AXUIElement calls directly. Better performanc
 | `prototypes/ax-typing/ax-benchmark.swift` | Performance measurement (find, focus, set, cycle) |
 | `prototypes/ax-typing/node-integration.ts` | Concept sketch for Node.js integration |
 | `docs/research/2026-04-14-ax-typing-indicators.md` | This document |
+
+## Security Considerations
+
+**AX privilege is process-wide.** Once Accessibility permission is granted to a binary, it can query and mutate the AX tree of *any* running application — not just Messages.app. If BlueBubbles is compromised (malicious plugin, RCE), an attacker gains AX access to every GUI app including password managers and banking apps. This is a broader privilege surface than Private API (which was scoped to imagent). Using a separate Swift CLI binary (instead of granting Accessibility to the full Electron process) limits the attack surface to just that binary's capabilities.
 
 ## Next Steps
 

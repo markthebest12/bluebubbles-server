@@ -120,23 +120,59 @@ func printNode(_ node: AXNode) {
     if let role = node.role { parts.append("role=\(role)") }
     if let subrole = node.subrole { parts.append("subrole=\(subrole)") }
     if let title = node.title, !title.isEmpty { parts.append("title=\"\(title)\"") }
-    if let desc = node.description, !desc.isEmpty { parts.append("desc=\"\(desc)\"") }
+    if let desc = node.description, !desc.isEmpty {
+        // Redact long descriptions — they contain message content from the transcript
+        if desc.count > 80 {
+            parts.append("desc=<redacted, \(desc.count) chars>")
+        } else {
+            parts.append("desc=\"\(desc)\"")
+        }
+    }
     if let id = node.identifier, !id.isEmpty { parts.append("id=\"\(id)\"") }
     if let ph = node.placeholder, !ph.isEmpty { parts.append("placeholder=\"\(ph)\"") }
     if let val = node.value {
-        let truncated = val.count > 50 ? String(val.prefix(50)) + "..." : val
-        parts.append("value=\"\(truncated)\"")
+        // Redact message bubble content to avoid PII leaks in terminal/logs
+        let isBubble = node.identifier == "CKBalloonTextView"
+        if isBubble {
+            parts.append("value=<redacted, \(val.count) chars>")
+        } else {
+            let truncated = val.count > 50 ? String(val.prefix(50)) + "..." : val
+            parts.append("value=\"\(truncated)\"")
+        }
     }
     print("\(indent)\(parts.joined(separator: " | "))")
 }
 
 // MARK: - Find Text Input
 
+func findComposeField(_ element: AXUIElement) -> AXUIElement? {
+    // Primary: find by identifier (most reliable)
+    if let field = findByIdentifierOrPlaceholder(element, id: "messageBodyField", placeholder: nil) {
+        return field
+    }
+    // Fallback: find by placeholder (iMessage or Text Message)
+    if let field = findByIdentifierOrPlaceholder(element, id: nil, placeholder: "iMessage") {
+        return field
+    }
+    return findByIdentifierOrPlaceholder(element, id: nil, placeholder: "Text Message")
+}
+
+func findByIdentifierOrPlaceholder(_ element: AXUIElement, id: String?, placeholder: String?, depth: Int = 0, maxDepth: Int = 8) -> AXUIElement? {
+    if let id = id, getIdentifier(element) == id { return element }
+    if let ph = placeholder, getPlaceholder(element) == ph { return element }
+    if depth >= maxDepth { return nil }
+    for child in getChildren(element) {
+        if let found = findByIdentifierOrPlaceholder(child, id: id, placeholder: placeholder, depth: depth + 1, maxDepth: maxDepth) {
+            return found
+        }
+    }
+    return nil
+}
+
 func findTextInputs(_ element: AXUIElement) -> [AXUIElement] {
     let nodes = walkTree(element)
     return nodes.compactMap { node in
         guard let role = node.role else { return nil }
-        // Look for text areas, text fields, and web areas that might contain text input
         if role == kAXTextAreaRole as String ||
            role == kAXTextFieldRole as String ||
            (role == "AXWebArea" && node.subrole == nil) {
@@ -209,35 +245,35 @@ func main() {
         print("[\(i)] role=\(role) id=\(identifier) placeholder=\(placeholder) value=\"\(value)\"")
     }
 
-    // Mode: set text
+    // Mode: set text (targets compose field specifically, not message bubbles)
     if let idx = args.firstIndex(of: "--set-text"), idx + 1 < args.count {
         let text = args[idx + 1]
-        guard let firstInput = textInputs.first else {
-            print("\nERROR: No text input found to set text on.")
+        guard let composeField = findComposeField(appElement) else {
+            print("\nERROR: No compose field found. Is a conversation selected?")
             exit(1)
         }
-        print("\nAttempting to set text to: \"\(text)\"")
-        let focused = focusElement(firstInput)
+        print("\nAttempting to set compose field text...")
+        let focused = focusElement(composeField)
         print("  Focus result: \(focused ? "OK" : "FAILED")")
-        let set = setText(firstInput, text: text)
+        let set = setText(composeField, text: text)
         print("  SetValue result: \(set ? "OK" : "FAILED")")
 
         // Re-read value
-        let newValue = getValue(firstInput) ?? "<empty>"
-        print("  Current value: \"\(newValue)\"")
+        let newValue = getValue(composeField) ?? "<empty>"
+        print("  Current value length: \(newValue.count) chars")
 
         print("\n** CHECK: Did the remote recipient see a typing indicator? **")
         return
     }
 
-    // Mode: focus
+    // Mode: focus (targets compose field specifically)
     if args.contains("--focus") {
-        guard let firstInput = textInputs.first else {
-            print("\nERROR: No text input found to focus.")
+        guard let composeField = findComposeField(appElement) else {
+            print("\nERROR: No compose field found. Is a conversation selected?")
             exit(1)
         }
-        print("\nAttempting to focus text input...")
-        let result = focusElement(firstInput)
+        print("\nAttempting to focus compose field...")
+        let result = focusElement(composeField)
         print("  Focus result: \(result ? "OK" : "FAILED")")
 
         print("\n** CHECK: Did the remote recipient see a typing indicator? **")

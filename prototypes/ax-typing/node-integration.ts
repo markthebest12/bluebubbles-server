@@ -37,28 +37,43 @@ const AX_BINARY = path.join(__dirname, "ax-typing-cli");
  */
 export async function startTypingViaAX(chatGuid: string): Promise<boolean> {
     try {
+        if (!isValidChatGuid(chatGuid)) {
+            console.warn(`AX typing: invalid chatGuid format`);
+            return false;
+        }
         // The Swift CLI handles finding the compose field and setting focus+text
-        const { stdout } = await execFileAsync(AX_BINARY, ["--start-typing", chatGuid], {
+        // Exit code 0 = success, non-zero = failure (structured protocol, not stdout parsing)
+        await execFileAsync(AX_BINARY, ["--start-typing", chatGuid], {
             timeout: 5000
         });
-        return stdout.includes("OK");
-    } catch (err) {
+        return true;
+    } catch (err: any) {
         // AX failures are non-fatal — typing indicators are nice-to-have
-        console.warn(`AX typing indicator failed: ${err}`);
+        console.warn(`AX typing indicator failed: ${err?.message ?? err}`);
         return false;
     }
 }
 
-export async function stopTypingViaAX(): Promise<boolean> {
+export async function stopTypingViaAX(chatGuid: string): Promise<boolean> {
     try {
-        const { stdout } = await execFileAsync(AX_BINARY, ["--stop-typing"], {
+        if (!isValidChatGuid(chatGuid)) {
+            console.warn(`AX stop typing: invalid chatGuid format`);
+            return false;
+        }
+        await execFileAsync(AX_BINARY, ["--stop-typing", chatGuid], {
             timeout: 5000
         });
-        return stdout.includes("OK");
-    } catch (err) {
-        console.warn(`AX stop typing failed: ${err}`);
+        return true;
+    } catch (err: any) {
+        console.warn(`AX stop typing failed: ${err?.message ?? err}`);
         return false;
     }
+}
+
+/** Validate chatGuid format to prevent injection via CLI args */
+function isValidChatGuid(guid: string): boolean {
+    // Expected formats: iMessage;-;+1234567890, iMessage;+;chat123456, SMS;-;+1234567890
+    return /^[a-zA-Z]+;[-+];[a-zA-Z0-9+@._-]+$/.test(guid);
 }
 
 /**
