@@ -27,6 +27,7 @@ export class ServerRepository extends EventEmitter {
 
     async initialize(): Promise<DataSource> {
         const isDev = process.env.NODE_ENV !== "production";
+        console.error("[DB-DEBUG] isDev:", isDev, "NODE_ENV:", process.env.NODE_ENV);
 
         // If the DB is set, but not connected, try to connect
         if (this.db) {
@@ -40,6 +41,8 @@ export class ServerRepository extends EventEmitter {
         }
 
         const shouldSync = !fs.existsSync(dbPath) || isDev;
+        console.error("[DB-DEBUG] dbPath:", dbPath, "exists:", fs.existsSync(dbPath), "shouldSync:", shouldSync);
+        console.error("[DB-DEBUG] Creating DataSource...");
         this.db = new DataSource({
             name: "config",
             type: "better-sqlite3",
@@ -54,8 +57,10 @@ export class ServerRepository extends EventEmitter {
             migrationsTableName: "migrations",
             synchronize: shouldSync
         });
+        console.error("[DB-DEBUG] DataSource created, calling initialize...");
 
         this.db = await this.db.initialize();
+        console.error("[DB-DEBUG] DataSource initialized successfully");
 
         // Load default config items
         await this.loadConfig();
