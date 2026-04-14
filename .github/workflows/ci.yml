@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm install --ignore-scripts
+      - run: npm install --ignore-scripts --force --force
       - name: Lint server
         run: cd packages/server && npx eslint --ext=jsx,js,tsx,ts src --max-warnings ${{ vars.SERVER_LINT_BASELINE || 999 }}
       - name: Lint UI
@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm install --ignore-scripts
+      - run: npm install --ignore-scripts --force
       - name: Typecheck server
         run: cd packages/server && npx tsc --noEmit
       - name: Typecheck UI
@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm install --ignore-scripts
+      - run: npm install --ignore-scripts --force
       - name: Run tests
         run: cd packages/server && npx vitest run --coverage
       - name: Upload coverage
