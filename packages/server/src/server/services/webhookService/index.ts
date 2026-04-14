@@ -30,6 +30,11 @@ export class WebhookService extends Loggable {
     }
 
     private async sendPost(url: string, event: WebhookEvent) {
-        return await axios.post(url, event, { headers: { "Content-Type": "application/json" } });
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const password = Server().repo.getConfig("password") as string;
+        if (password) {
+            headers["Authorization"] = `Bearer ${password}`;
+        }
+        return await axios.post(url, event, { headers });
     }
 }
