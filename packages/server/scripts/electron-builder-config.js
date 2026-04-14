@@ -3,7 +3,7 @@
 module.exports = {
     "productName": "BlueBubbles",
     "appId": "com.BlueBubbles.BlueBubbles-Server",
-    "npmRebuild": true,
+    "npmRebuild": false,
     "directories": {
         "output": "releases",
         "buildResources": "appResources"
@@ -29,7 +29,6 @@ module.exports = {
             {
                 "target": "dmg",
                 "arch": [
-                    "x64",
                     "arm64"
                 ],
             }
