@@ -8,9 +8,19 @@ import { isMinBigSur, isMinVentura } from "@server/env";
 
 const osVersion = macosVersion();
 
+/**
+ * Maps Tahoe's `any` service type back to `iMessage` for AppleScript compatibility.
+ * macOS 26 changed chat GUIDs from `iMessage;-;addr` to `any;-;addr`, but
+ * AppleScript still requires the canonical service type.
+ */
+export const mapServiceType = (service: string): string => {
+    if (service.toLowerCase() === "any") return "iMessage";
+    return service;
+};
+
 const buildServiceScript = (inputService: string) => {
     // Wrap the service in quotes if we are on < macOS 11 and it's not iMessage
-    let theService = inputService;
+    let theService = mapServiceType(inputService);
     if (!isMinBigSur && theService !== "iMessage") {
         theService = `"${theService}"`;
     }
@@ -65,7 +75,7 @@ const getServiceFromInput = (value: string) => {
     if (valSplit.length <= 1) return "iMessage";
 
     // Otherwise, return the "first" index in the array,
-    return valSplit[0];
+    return mapServiceType(valSplit[0]);
 };
 
 /**
@@ -183,7 +193,7 @@ export const sendMessage = (chatGuid: string, message: string, attachment: strin
     // If the chat is to an individual, we need to make sure the number is formatted correctly
     if (chatGuid.includes(";-;")) {
         const strSplit = chatGuid.split(";-;");
-        const service = strSplit[0];
+        const service = mapServiceType(strSplit[0]);
         const addr = strSplit[1];
         chatGuid = `${service};-;${getiMessageAddressFormat(addr)}`;
     }
