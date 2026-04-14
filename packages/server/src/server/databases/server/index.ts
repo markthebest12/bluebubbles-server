@@ -2,6 +2,7 @@ import fs from "fs";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import { DataSource } from "typeorm";
+import log from "electron-log";
 import { Server } from "@server";
 import { isEmpty, isNotEmpty } from "@server/helpers/utils";
 import { Config, Alert, Device, Queue, Webhook, Contact, ContactAddress, ScheduledMessage } from "./entity";
@@ -27,7 +28,7 @@ export class ServerRepository extends EventEmitter {
 
     async initialize(): Promise<DataSource> {
         const isDev = process.env.NODE_ENV !== "production";
-        console.error("[DB-DEBUG] isDev:", isDev, "NODE_ENV:", process.env.NODE_ENV);
+        log.info("[DB-DEBUG] isDev:", isDev, "NODE_ENV:", process.env.NODE_ENV);
 
         // If the DB is set, but not connected, try to connect
         if (this.db) {
@@ -41,8 +42,8 @@ export class ServerRepository extends EventEmitter {
         }
 
         const shouldSync = !fs.existsSync(dbPath) || isDev;
-        console.error("[DB-DEBUG] dbPath:", dbPath, "exists:", fs.existsSync(dbPath), "shouldSync:", shouldSync);
-        console.error("[DB-DEBUG] Creating DataSource...");
+        log.info("[DB-DEBUG] dbPath:", dbPath, "exists:", fs.existsSync(dbPath), "shouldSync:", shouldSync);
+        log.info("[DB-DEBUG] Creating DataSource...");
         this.db = new DataSource({
             name: "config",
             type: "better-sqlite3",
@@ -57,10 +58,10 @@ export class ServerRepository extends EventEmitter {
             migrationsTableName: "migrations",
             synchronize: shouldSync
         });
-        console.error("[DB-DEBUG] DataSource created, calling initialize...");
+        log.info("[DB-DEBUG] DataSource created, calling initialize...");
 
         this.db = await this.db.initialize();
-        console.error("[DB-DEBUG] DataSource initialized successfully");
+        log.info("[DB-DEBUG] DataSource initialized successfully");
 
         // Load default config items
         await this.loadConfig();
