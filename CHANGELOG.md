@@ -1,8 +1,7 @@
 # Changelog
 
-All notable changes to the BlueBubbles Server fork will be documented in this file.
-
-This project uses [Semantic Versioning](https://semver.org/) managed by [Uplift](https://uplift.dev/).
+All notable changes to this project will be documented in this file.
+This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## v1.9.9 — Fork Baseline
 
