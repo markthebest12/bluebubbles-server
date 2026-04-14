@@ -41,24 +41,17 @@ export class ServerRepository extends EventEmitter {
             dbPath = `${app.getPath("userData")}/bluebubbles-server/config.db`;
         }
 
-        const shouldSync = !fs.existsSync(dbPath) || isDev;
-        log.info("[DB-DEBUG] dbPath:", dbPath, "exists:", fs.existsSync(dbPath), "shouldSync:", shouldSync);
-        log.info("[DB-DEBUG] Creating DataSource...");
+        log.info("[DB-DEBUG] dbPath:", dbPath, "exists:", fs.existsSync(dbPath));
+        // Always use synchronize to keep schema in sync with entities.
+        // migrationsRun hangs in packaged Electron builds when TypeORM's
+        // migration runner encounters tables already created by synchronize.
         this.db = new DataSource({
             name: "config",
             type: "better-sqlite3",
             database: dbPath,
             entities: [Config, Alert, Device, Queue, Webhook, Contact, ContactAddress, ScheduledMessage],
-            migrations: [
-                ContactTables1654432080899,
-                ScheduledMessageTable1665083072000,
-                AddExternalIdToContacts1750299580000
-            ],
-            migrationsRun: !shouldSync,
-            migrationsTableName: "migrations",
-            synchronize: shouldSync
+            synchronize: true
         });
-        log.info("[DB-DEBUG] DataSource created, calling initialize...");
 
         this.db = await this.db.initialize();
         log.info("[DB-DEBUG] DataSource initialized successfully");
