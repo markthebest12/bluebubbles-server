@@ -13,6 +13,9 @@ export type WebhookEvent = {
 export class WebhookService extends Loggable {
     tag = "WebhookService";
 
+    /** Base delay in ms for exponential backoff. Override in tests. */
+    retryBaseDelayMs = 1000;
+
     async dispatch(event: WebhookEvent) {
         const webhooks = await Server().repo.getWebhooks();
         for (const i of webhooks) {
@@ -22,9 +25,11 @@ export class WebhookService extends Loggable {
 
             // We don't need to await this
             this.sendPost(i.url, event).catch(ex => {
-                this.log.debug(`Failed to dispatch "${event.type}" event to webhook: ${i.url}`);
-                this.log.debug(`  -> Error: ${ex?.message ?? String(ex)}`);
-                this.log.debug(`  -> Status Text: ${ex?.response?.statusText}`);
+                this.log.warn(`Failed to dispatch "${event.type}" event to webhook after retries: ${i.url}`);
+                this.log.warn(`  -> Error: ${ex?.message ?? String(ex)}`);
+                if (ex?.response?.statusText) {
+                    this.log.warn(`  -> Status Text: ${ex.response.statusText}`);
+                }
             });
         }
     }
@@ -35,6 +40,22 @@ export class WebhookService extends Loggable {
         if (password) {
             headers["Authorization"] = `Bearer ${password}`;
         }
-        return await axios.post(url, event, { headers });
+
+        const maxRetries = 3;
+        const baseDelayMs = this.retryBaseDelayMs;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await axios.post(url, event, { headers });
+            } catch (err) {
+                if (attempt < maxRetries) {
+                    const delay = baseDelayMs * Math.pow(2, attempt - 1);
+                    this.log.debug(`Webhook delivery failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms: ${url}`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    throw err;
+                }
+            }
+        }
     }
 }

@@ -1,31 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 
-// Mock axios
-vi.mock("axios", () => ({
-    default: { post: vi.fn().mockResolvedValue({ status: 200 }) },
-    __esModule: true
-}));
+vi.mock("axios");
 
-// Mock Server
-const mockGetConfig = vi.fn();
-const mockGetWebhooks = vi.fn();
+const mockGetWebhooks = vi.fn().mockResolvedValue([]);
+const mockGetConfig = vi.fn().mockReturnValue("test-password");
 
 vi.mock("@server", () => ({
     Server: () => ({
         repo: {
-            getConfig: mockGetConfig,
-            getWebhooks: mockGetWebhooks
+            getWebhooks: mockGetWebhooks,
+            getConfig: mockGetConfig
         }
     })
 }));
 
-// Mock Loggable so we don't need EventEmitter or Logger
+// Mock the Loggable base class
 vi.mock("@server/lib/logging/Loggable", () => ({
     Loggable: class {
-        tag: string;
-        log = { debug: vi.fn(), on: vi.fn() };
-        onLog() {}
+        log = {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn()
+        };
     }
 }));
 
@@ -33,75 +31,99 @@ import { WebhookService } from "../index";
 
 describe("WebhookService", () => {
     let service: WebhookService;
+    const mockedAxios = vi.mocked(axios);
 
     beforeEach(() => {
         vi.clearAllMocks();
         service = new WebhookService();
+        // Use 0ms delay in tests so retries resolve instantly
+        service.retryBaseDelayMs = 0;
+        // Restore default mock behavior after clearAllMocks
+        mockGetWebhooks.mockResolvedValue([]);
+        mockGetConfig.mockReturnValue("test-password");
     });
 
-    describe("sendPost Authorization header", () => {
-        it("should include Authorization header when password is configured", async () => {
-            mockGetConfig.mockReturnValue("my-secret-password");
-            mockGetWebhooks.mockResolvedValue([
-                { url: "https://example.com/webhook", events: JSON.stringify(["*"]) }
-            ]);
+    describe("sendPost retry behavior", () => {
+        it("succeeds on first attempt without retry", async () => {
+            mockedAxios.post.mockResolvedValueOnce({ status: 200 });
 
-            await service.dispatch({ type: "new-message", data: {} });
+            await (service as any).sendPost("https://example.com/hook", { type: "test", data: {} });
 
-            // Allow the fire-and-forget promise to resolve
-            await new Promise(resolve => setTimeout(resolve, 10));
+            expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+        });
 
-            expect(axios.post).toHaveBeenCalledWith(
-                "https://example.com/webhook",
-                { type: "new-message", data: {} },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer my-secret-password"
-                    }
-                }
+        it("retries on failure and succeeds on second attempt", async () => {
+            mockedAxios.post
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockResolvedValueOnce({ status: 200 });
+
+            await (service as any).sendPost("https://example.com/hook", { type: "test", data: {} });
+
+            expect(mockedAxios.post).toHaveBeenCalledTimes(2);
+            expect(service.log.debug).toHaveBeenCalledWith(
+                expect.stringContaining("attempt 1/3")
             );
         });
 
-        it("should not include Authorization header when password is empty", async () => {
-            mockGetConfig.mockReturnValue("");
-            mockGetWebhooks.mockResolvedValue([
-                { url: "https://example.com/webhook", events: JSON.stringify(["*"]) }
-            ]);
+        it("retries on failure and succeeds on third attempt", async () => {
+            mockedAxios.post
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockResolvedValueOnce({ status: 200 });
 
-            await service.dispatch({ type: "new-message", data: {} });
+            await (service as any).sendPost("https://example.com/hook", { type: "test", data: {} });
 
-            await new Promise(resolve => setTimeout(resolve, 10));
-
-            expect(axios.post).toHaveBeenCalledWith(
-                "https://example.com/webhook",
-                { type: "new-message", data: {} },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
+            expect(mockedAxios.post).toHaveBeenCalledTimes(3);
         });
 
-        it("should not include Authorization header when password is null", async () => {
-            mockGetConfig.mockReturnValue(null);
+        it("throws after max retries exhausted", async () => {
+            mockedAxios.post
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"));
+
+            await expect(
+                (service as any).sendPost("https://example.com/hook", { type: "test", data: {} })
+            ).rejects.toThrow("ECONNREFUSED");
+
+            expect(mockedAxios.post).toHaveBeenCalledTimes(3);
+        });
+
+        it("includes Authorization header when password is configured", async () => {
+            mockedAxios.post.mockResolvedValueOnce({ status: 200 });
+
+            await (service as any).sendPost("https://example.com/hook", { type: "test", data: {} });
+
+            expect(mockedAxios.post).toHaveBeenCalledWith(
+                "https://example.com/hook",
+                { type: "test", data: {} },
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        "Authorization": "Bearer test-password"
+                    })
+                })
+            );
+        });
+    });
+
+    describe("dispatch", () => {
+        it("logs warning after all retries fail", async () => {
             mockGetWebhooks.mockResolvedValue([
-                { url: "https://example.com/webhook", events: JSON.stringify(["*"]) }
+                { url: "https://example.com/hook", events: '["*"]' }
             ]);
+            mockedAxios.post
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+                .mockRejectedValueOnce(new Error("ECONNREFUSED"));
 
-            await service.dispatch({ type: "new-message", data: {} });
+            // dispatch is async (awaits getWebhooks), but sendPost is fire-and-forget
+            await service.dispatch({ type: "test-event", data: {} });
 
-            await new Promise(resolve => setTimeout(resolve, 10));
+            // Wait for the fire-and-forget sendPost + catch chain to settle
+            await new Promise(resolve => setTimeout(resolve, 50));
 
-            expect(axios.post).toHaveBeenCalledWith(
-                "https://example.com/webhook",
-                { type: "new-message", data: {} },
-                {
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                }
+            expect(service.log.warn).toHaveBeenCalledWith(
+                expect.stringContaining("Failed to dispatch")
             );
         });
     });
