@@ -167,3 +167,114 @@ describe("hasQueuedMessage filter (null-guard)", () => {
         expect(result).toHaveLength(0);
     });
 });
+
+/**
+ * Tahoe compatibility tests.
+ *
+ * macOS 26 Tahoe sets message.text to NULL in chat.db for all messages.
+ * Message content is only available via attributedBody. These tests verify
+ * that all critical code paths handle this correctly.
+ */
+describe("Tahoe compatibility (text=NULL, attributedBody populated)", () => {
+    describe("universalText", () => {
+        it("returns attributedBody text when text is null (Tahoe scenario)", () => {
+            expect(universalText(null, "Hello from Tahoe")).toBe("Hello from Tahoe");
+        });
+
+        it("returns attributedBody text when text is null and sanitize=true", () => {
+            expect(universalText(null, "Hello from Tahoe", true)).toBe("Hello from Tahoe");
+        });
+
+        it("prefers text column when both are populated (pre-Tahoe)", () => {
+            expect(universalText("From text col", "From attributed body")).toBe("From text col");
+        });
+
+        it("returns null when both text and attributedBody are null (Tahoe, no content)", () => {
+            expect(universalText(null, null)).toBeNull();
+        });
+
+        it("returns attributedBody for empty string text with attributedBody", () => {
+            expect(universalText("", "Fallback content")).toBe("Fallback content");
+        });
+
+        it("returns attributedBody for whitespace-only text", () => {
+            expect(universalText("   ", "Fallback content")).toBe("Fallback content");
+        });
+    });
+
+    describe("contentString", () => {
+        const date = new Date("2026-04-14T00:00:00Z");
+
+        it("displays attributedBody text when text is null", () => {
+            const result = contentString(null, "Tahoe message", [], null, date);
+            expect(result).toContain('"Tahoe message"');
+            expect(result).not.toContain("<No Text>");
+        });
+
+        it("truncates long attributedBody text", () => {
+            const result = contentString(null, "This is a long Tahoe message body", [], null, date, 15);
+            expect(result).toContain("...");
+        });
+
+        it("shows <No Text> only when both text and attributedBody are null", () => {
+            const result = contentString(null, null, [], null, date);
+            expect(result).toContain("<No Text>");
+        });
+
+        it("includes attachment count alongside attributedBody text", () => {
+            const result = contentString(null, "Photo", [{ name: "image.jpg" }], null, date);
+            expect(result).toContain('"Photo"');
+            expect(result).toContain("Attachments: 1");
+        });
+    });
+
+    describe("MessagePoller group change filter (isEmpty(e.text) && itemType guard)", () => {
+        // Replicate the MessagePoller line 56 filter logic
+        function filterGroupChanges(entries: Array<{ text: string | null; itemType: number }>) {
+            return entries.filter(e => isEmpty(e.text) && [1, 2, 3].includes(e.itemType));
+        }
+
+        it("does NOT match regular messages (itemType=0) even when text is null on Tahoe", () => {
+            const entries = [
+                { text: null, itemType: 0 },  // Regular message on Tahoe — text is null
+                { text: null, itemType: 0 },  // Another regular message
+            ];
+            expect(filterGroupChanges(entries)).toHaveLength(0);
+        });
+
+        it("matches group changes (itemType=1,2,3) when text is null", () => {
+            const entries = [
+                { text: null, itemType: 1 },  // participant added
+                { text: null, itemType: 2 },  // name change
+                { text: null, itemType: 3 },  // participant left / icon changed
+            ];
+            expect(filterGroupChanges(entries)).toHaveLength(3);
+        });
+
+        it("correctly separates regular messages from group changes on Tahoe", () => {
+            const entries = [
+                { text: null, itemType: 0 },  // Regular message (Tahoe null text)
+                { text: null, itemType: 1 },  // Group change
+                { text: null, itemType: 0 },  // Regular message (Tahoe null text)
+                { text: null, itemType: 2 },  // Name change
+            ];
+            const groupChanges = filterGroupChanges(entries);
+            expect(groupChanges).toHaveLength(2);
+            expect(groupChanges.every(e => e.itemType !== 0)).toBe(true);
+        });
+    });
+
+    describe("hasQueuedMessage filter with Tahoe null text", () => {
+        it("matches by tempGuid when text is null (Tahoe queue item)", () => {
+            const items = [{ tempGuid: "temp-abc", text: null }];
+            const result = filterByTextStartsWith(items, "temp-abc");
+            expect(result).toHaveLength(1);
+        });
+
+        it("does not crash on text?.startsWith when text is null", () => {
+            const items = [{ tempGuid: "other", text: null }];
+            expect(() => filterByTextStartsWith(items, "temp-xyz")).not.toThrow();
+            expect(filterByTextStartsWith(items, "temp-xyz")).toHaveLength(0);
+        });
+    });
+});
