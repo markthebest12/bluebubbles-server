@@ -5,6 +5,12 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.10.3](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.3) - 2026-04-14
+
+- [`bc10360`](https://github.com/markthebest12/bluebubbles-server/commit/bc1036075bf1c50ddb3d665ab954a2670b8f05a8) research: Accessibility API typing indicators prototype (#20) (#25)
+- [`e057257`](https://github.com/markthebest12/bluebubbles-server/commit/e057257cb6e4ba6f33925fed42edfbd303203126) fix: add exponential backoff retry for webhook delivery (#15) (#24)
+- [`bc10360`](https://github.com/markthebest12/bluebubbles-server/commit/bc1036075bf1c50ddb3d665ab954a2670b8f05a8) research: Accessibility API typing indicators prototype (#20) (#25)
+
 ## [v1.10.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.0) - 2026-04-13
 
 - [`25160b7`](https://github.com/markthebest12/bluebubbles-server/commit/25160b7d23de324845e985fd9fd60c6d68296b8a) feat: include authorization header in webhook requests (#11)
