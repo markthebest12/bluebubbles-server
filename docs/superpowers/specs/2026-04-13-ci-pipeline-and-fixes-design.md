@@ -49,16 +49,17 @@ Enforced via `pr-title.yml`. Allowed types: `feat`, `fix`, `perf`, `refactor`, `
 ### ci.yml
 
 **Triggers:** PRs to `main`, manual dispatch.
-**Runner:** `ubuntu-latest` (all quality gates are TypeScript — no macOS needed).
+**Runner:** `ubuntu-latest` for all quality gate jobs.
 **Node:** 20.x with npm cache via `actions/setup-node`.
+**Install:** `npm install --ignore-scripts` — the server's `postinstall` runs `electron-rebuild` which compiles macOS-only native modules (`node-mac-contacts`, `node-mac-permissions`) and will fail on Ubuntu. CI only needs the source for linting, typechecking, and testing.
 **All actions pinned to commit SHAs.**
 
 #### Jobs (parallel)
 
 | Job | Description | Blocking |
 |-----|-------------|----------|
-| `lint` | ESLint on `packages/server` and `packages/ui`, `--max-warnings 0` | Yes |
-| `typecheck` | `tsc --noEmit` on both packages | Yes |
+| `lint` | ESLint on `packages/server` and `packages/ui` (add `lint` script to UI package). Use `--max-warnings` with a counted baseline of existing warnings — tighten to 0 over time. | Yes |
+| `typecheck` | `tsc --noEmit` on both packages. Note: server uses webpack+babel for builds, but `tsc --noEmit` is valid for type checking. May surface decorator-related false positives — suppress with targeted `// @ts-expect-error` or `skipLibCheck` if needed. | Yes |
 | `test` | Vitest on server package, coverage report | Yes |
 | `security-scan` | Trivy (filesystem + secrets, HIGH/CRITICAL) + Gitleaks (full history) | Yes |
 | `dep-audit` | `npm audit --audit-level=high` | Yes |
@@ -70,9 +71,11 @@ Enforced via `pr-title.yml`. Allowed types: `feat`, `fix`, `perf`, `refactor`, `
 - Filesystem scan: `vuln` scanner, severity `HIGH,CRITICAL`, `ignore-unfixed: true`
 - Secret scan: `secret` scanner, exit code 1 on finding
 
-**Gitleaks** — full git history scan (fetch-depth 0 for this job only), blocking.
+**Gitleaks** — full git history scan (fetch-depth 0 for this job only), blocking. Use `--log-opts="--since=2026-04-13"` to avoid flagging pre-existing upstream history. If upstream secrets are found before our fork date, add to `.gitleaksignore` with documented justification.
 
 **npm audit** — `--audit-level=high`, JSON output as artifact. Accepted CVEs documented with justification.
+
+**Accepted risk:** Electron 25.9.8 is EOL (Dec 2023) with known Chromium/Node CVEs in the runtime. Upgrading Electron is out of scope for initial fixes (multi-major jump with breaking changes). Track as a separate issue.
 
 ### pr-title.yml
 
@@ -95,7 +98,9 @@ Validates PR titles match conventional commit format using `amannn/action-semant
 
 ### Version Scheme
 
-Standard semver. Starting from upstream 1.9.9, first release tagged based on change scope. No build artifacts — tag and CHANGELOG only.
+Standard semver. **Before first Uplift run, manually create a `v1.9.9` baseline tag** on the initial commit of `main` so Uplift has a correct starting point. First Uplift-managed release will be v1.9.10 or v1.10.0 depending on commit types. No build artifacts — tag and CHANGELOG only.
+
+**Bump scope:** Only bump `packages/server/package.json` and root `package.json`. Skip `packages/ui/package.json` unless the UI is actually modified — avoids false version signals on server-only fixes.
 
 ## 4. Upstream Sync
 
@@ -105,13 +110,15 @@ Standard semver. Starting from upstream 1.9.9, first release tagged based on cha
 
 **Behavior:**
 1. Fetch `upstream/master` and `upstream/development`
-2. Compare against `origin/main`
-3. If new upstream commits exist, open PR with:
+2. **Primary sync target:** `upstream/development` (our fork is based on this branch). Compare against `origin/main` for new commits.
+3. **Secondary check:** `upstream/master` for tagged releases only (new version tags). This catches hotfixes that go straight to master without going through development.
+4. If new upstream commits exist, open PR with:
    - Commit summary (last 20 messages)
    - Diff stat
    - Conflict detection (trial merge, reports conflicting files)
-4. Label: `upstream-sync`
-5. No auto-merge — manual review and decision
+   - Which upstream branch the changes come from
+5. Label: `upstream-sync`
+6. No auto-merge — manual review and decision
 
 ## 5. Testing Infrastructure
 
@@ -124,7 +131,8 @@ Vitest — native TypeScript, fast, v8 coverage provider.
 - Environment: `node`
 - Coverage: `v8` provider, reports `text` + `json` + `html`
 - Include: `src/**/*.test.ts`
-- Path aliases: `@server`, `@windows`, `@trays` (matching tsconfig/webpack)
+- **Path aliases:** Use `vite-tsconfig-paths` plugin to resolve `@server`, `@windows`, `@trays` from tsconfig.json (Vitest does not read tsconfig paths natively)
+- **Decorator support:** The server uses TypeORM with `emitDecoratorMetadata: true`. Vitest's default esbuild transform does not support decorator metadata. Use `@vitest/babel` transform or SWC plugin to handle this correctly.
 
 ### Convention
 
@@ -150,12 +158,17 @@ Co-located tests: `src/foo/bar.ts` gets `src/foo/bar.test.ts`.
 
 ### Husky v9 + lint-staged
 
-Upgrade from existing husky v4.
+Upgrade from existing husky v4. **Migration steps:**
+1. Remove `"husky"` and `"lint-staged"` keys from `packages/server/package.json` (v4 config)
+2. Install `husky` v9 as a **root** devDependency (must be at git root, not inside a package)
+3. Add `"prepare": "husky"` to root `package.json`
+4. Create `.husky/pre-commit` and `.husky/commit-msg` shell scripts
+5. Move lint-staged config to root `.lintstagedrc.js` (supports monorepo globs)
 
 **pre-commit hook:**
-- ESLint on staged `.ts`, `.tsx` files
+- ESLint on staged `.ts`, `.tsx` files (both packages)
 - Prettier on staged `.ts`, `.tsx`, `.json`, `.css`, `.md` files
-- TypeScript type check (`tsc --noEmit`) on server package
+- No `tsc --noEmit` in pre-commit — too slow for the full server package (5-15s cold). ESLint already runs type-aware linting via `parserOptions.project`. Full typecheck runs in CI.
 
 **commit-msg hook:**
 - Commitlint with `@commitlint/config-conventional`
@@ -170,12 +183,16 @@ Set up all workflows, testing infrastructure, pre-commit hooks, branch protectio
 
 ### Issue #6: Verify Unreleased Development Fixes (chore)
 
-Confirm inherited fixes from upstream `development`: attachment chunking, LaunchAgents mkdir, stopTyping fix, OID cert handling, content-length headers, VCF import API, sensitive config exclusion, dashboard version display, menu bar icon fixes. Document in CHANGELOG, tag v1.10.0.
+Confirm inherited fixes from upstream `development`: attachment chunking, LaunchAgents mkdir, stopTyping fix, OID cert handling, content-length headers, VCF import API, sensitive config exclusion, dashboard version display, menu bar icon fixes. Document in CHANGELOG.
+
+**Important:** Create manual `v1.9.9` baseline tag on the initial `main` commit before any Uplift runs. This gives Uplift a correct starting point. The first Uplift-managed version will be computed from commits after this tag.
+
+**Verification scope:** "Verify" means confirming the commits are present in git history and the code exists. Behavioral verification (do they actually work on macOS 26?) requires running the server on canon — that's a separate manual activity, not part of the PR.
 
 ### Issue #2: Guard message.text null (fix)
 
-**Problem:** `message.text.trim()` crashes on undefined text (group chat, attachment-only messages).
-**Fix:** Null guard before `.trim()`.
+**Problem:** Message processing crashes on undefined/null text (group chat, attachment-only messages). The `Message` entity has `text: string` typed without `| null` despite the DB column being `nullable: true`. With `strictNullChecks: false`, the compiler doesn't catch this.
+**Fix:** Identify exact crash location(s) during implementation — search all `.text.trim()`, `.text.length`, and similar unguarded access patterns. Add null/optional chaining guards.
 **Tests:** Undefined text, attachment-only message, normal text.
 
 ### Issue #3: fs.watch persistent flag (fix, cherry-pick)
@@ -187,7 +204,7 @@ Confirm inherited fixes from upstream `development`: attachment chunking, Launch
 ### Issue #4: Webhook authorization header (feat, cherry-pick)
 
 **Problem:** No auth on outbound webhooks, receivers can't verify origin.
-**Fix:** Cherry-pick from saucesteals fork — add `Authorization` header.
+**Fix:** Cherry-pick from saucesteals fork — add `Authorization` header. **Note:** The Webhook entity currently has no `secret`/`token` column. The cherry-pick may add one, which requires a TypeORM migration or a nullable column with default. Verify the cherry-pick's approach and add a migration if needed. Existing webhook rows must not break.
 **Tests:** Header present when configured, absent when not (backwards compat).
 
 ### Issue #5: stopTyping endpoint (fix)
@@ -195,3 +212,25 @@ Confirm inherited fixes from upstream `development`: attachment chunking, Launch
 **Problem:** stopTyping calls startTyping (copy-paste error).
 **Status:** Already fixed in our development base (upstream PR #768). Verify present, add test.
 **Tests:** Endpoints wired to correct handlers.
+
+## Review Notes
+
+Issues identified during spec review (correctness + architecture) and addressed inline:
+
+| # | Finding | Severity | Resolution |
+|---|---------|----------|------------|
+| 1 | `npm install` postinstall fails on Ubuntu (native macOS modules) | High | Added `--ignore-scripts` to CI install step |
+| 2 | Vitest esbuild can't handle `emitDecoratorMetadata` (TypeORM) | High | Spec now requires `@vitest/babel` or SWC plugin |
+| 3 | Path aliases not natively resolved by Vitest | Medium | Spec now requires `vite-tsconfig-paths` plugin |
+| 4 | Husky v9 must be at monorepo root, not package level | High | Added explicit migration steps |
+| 5 | `tsc --noEmit` too slow for pre-commit hook | High | Removed from pre-commit, kept in CI only |
+| 6 | UI package has no `lint` script | High | Noted in lint job description |
+| 7 | `--max-warnings 0` fails on existing warnings | High | Changed to counted baseline, tighten over time |
+| 8 | No Uplift tag baseline | High | Added manual `v1.9.9` tag step to Issue #6 |
+| 9 | Upstream sync dual-branch ambiguity | Medium | Clarified primary (development) and secondary (master releases) |
+| 10 | Gitleaks may flag pre-existing upstream secrets | Medium | Added date cutoff and allowlist strategy |
+| 11 | Issue #2 needs exact crash location | Medium | Changed to require search during implementation |
+| 12 | Issue #4 needs database migration | Medium | Added migration requirement |
+| 13 | Electron 25 EOL with known CVEs | Medium | Documented as accepted risk, track separately |
+| 14 | Bump scope too broad (UI bumped on server-only fixes) | Low | Limited bump to server + root package.json |
+| 15 | Issue #6 conflates "verify present" with "verify works" | Low | Clarified verification scope |
