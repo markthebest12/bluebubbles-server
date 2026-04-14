@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.2](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.2) - 2026-04-14
+
+- [`7fa95b7`](https://github.com/markthebest12/bluebubbles-server/commit/7fa95b789eb619b63cd3e855d530e73e9b6e849f) fix: prevent setup wizard flash before server config loads (#29)
+
 ## [v1.11.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.1) - 2026-04-14
 
 - [`94726ae`](https://github.com/markthebest12/bluebubbles-server/commit/94726ae0aa85225811d5f1d5c08915a27e9b0e34) fix: set cwd to packages/server in build-no-typecheck.js
