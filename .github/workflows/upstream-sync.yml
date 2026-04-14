@@ -1,0 +1,85 @@
+name: Upstream Sync Check
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Monday 6am PT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-upstream:
+    name: Check for upstream changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/BlueBubblesApp/bluebubbles-server.git || true
+
+      - name: Fetch upstream
+        run: git fetch upstream development master --tags
+
+      - name: Check development branch
+        id: dev-check
+        run: |
+          AHEAD=$(git rev-list --count HEAD..upstream/development 2>/dev/null || echo "0")
+          echo "ahead=$AHEAD" >> "$GITHUB_OUTPUT"
+          if [ "$AHEAD" -gt 0 ]; then
+            echo "## Upstream development has $AHEAD new commits" >> /tmp/sync-report.md
+            echo "" >> /tmp/sync-report.md
+            echo "### Recent commits:" >> /tmp/sync-report.md
+            git log --oneline HEAD..upstream/development | head -20 >> /tmp/sync-report.md
+            echo "" >> /tmp/sync-report.md
+            echo "### Diff stat:" >> /tmp/sync-report.md
+            echo '```' >> /tmp/sync-report.md
+            git diff --stat HEAD..upstream/development | tail -5 >> /tmp/sync-report.md
+            echo '```' >> /tmp/sync-report.md
+          fi
+
+      - name: Check master branch for new releases
+        id: master-check
+        run: |
+          LATEST_UPSTREAM_TAG=$(git tag -l "v*" --sort=-v:refname --merged upstream/master | head -1)
+          LATEST_LOCAL_TAG=$(git tag -l "v*" --sort=-v:refname | head -1)
+          echo "upstream_tag=$LATEST_UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+          echo "local_tag=$LATEST_LOCAL_TAG" >> "$GITHUB_OUTPUT"
+          if [ "$LATEST_UPSTREAM_TAG" != "$LATEST_LOCAL_TAG" ] && [ -n "$LATEST_UPSTREAM_TAG" ]; then
+            echo "" >> /tmp/sync-report.md
+            echo "## New upstream release: $LATEST_UPSTREAM_TAG (local: $LATEST_LOCAL_TAG)" >> /tmp/sync-report.md
+          fi
+
+      - name: Check for conflicts
+        if: steps.dev-check.outputs.ahead != '0'
+        run: |
+          echo "" >> /tmp/sync-report.md
+          if git merge --no-commit --no-ff upstream/development 2>/dev/null; then
+            echo "### Conflict check: **Clean merge possible**" >> /tmp/sync-report.md
+          else
+            echo "### Conflict check: **Conflicts detected**" >> /tmp/sync-report.md
+            echo '```' >> /tmp/sync-report.md
+            git diff --name-only --diff-filter=U >> /tmp/sync-report.md
+            echo '```' >> /tmp/sync-report.md
+          fi
+          git merge --abort 2>/dev/null || true
+
+      - name: Create issue if changes found
+        if: steps.dev-check.outputs.ahead != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          AHEAD=${{ steps.dev-check.outputs.ahead }}
+          EXISTING=$(gh issue list --label upstream-sync --state open --json number --jq 'length')
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "Upstream sync issue already exists, skipping"
+            exit 0
+          fi
+          BODY=$(cat /tmp/sync-report.md 2>/dev/null || echo "Upstream has new commits")
+          gh issue create \
+            --title "chore: upstream sync — $AHEAD new commits on development" \
+            --body "$BODY" \
+            --label "upstream-sync"

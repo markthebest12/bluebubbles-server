@@ -5,7 +5,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "start": "export BROWSER=none && react-app-rewired start",
-    "build": "export NODE_ENV=production && react-app-rewired build"
+    "build": "export NODE_ENV=production && react-app-rewired build",
+    "lint": "eslint --ext=jsx,js,tsx,ts src"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
