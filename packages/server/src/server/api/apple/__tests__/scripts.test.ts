@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 /**
  * Tests for AppleScript GUID service-type mapping (Issue #18).
@@ -16,14 +16,19 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
 vi.mock("macos-version", () => ({
     default: () => "15.0",
     isGreaterThanOrEqualTo: (v: string) => {
-        // Simulate macOS 15+ (Sequoia/Tahoe era)
         const target = parseFloat(v);
         return 15.0 >= target;
     }
 }));
 
 vi.mock("compare-versions", () => ({
-    default: (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true })
+    default: (a: string, b: string) => {
+        const [aMaj, aMin = 0] = a.split(".").map(Number);
+        const [bMaj, bMin = 0] = b.split(".").map(Number);
+        if (aMaj !== bMaj) return aMaj > bMaj ? 1 : -1;
+        if (aMin !== bMin) return aMin > bMin ? 1 : -1;
+        return 0;
+    }
 }));
 
 vi.mock("electron-log", () => ({
@@ -46,7 +51,7 @@ vi.mock("@server/env", () => ({
     isMinSierra: true
 }));
 
-// Mock @server/helpers/utils with the functions scripts.ts actually uses
+// Mock @server/helpers/utils — matches real impl signatures
 vi.mock("@server/helpers/utils", () => ({
     escapeOsaExp: (input: string) => {
         return input
@@ -56,20 +61,25 @@ vi.mock("@server/helpers/utils", () => ({
             .replace(/`/g, "\\`");
     },
     getiMessageAddressFormat: (address: string) => {
-        // Simplified: just return the address as-is for test purposes
-        // Real impl does phone number formatting, but we only care about service mapping
+        // Simplified: returns address as-is. Real impl does phone formatting.
         return address;
     },
-    isEmpty: (value: any): boolean => {
-        if (value === null || value === undefined) return true;
-        if (typeof value === "string") return value.trim().length === 0;
-        if (Array.isArray(value)) return value.length === 0;
+    isEmpty: (value: any, trim = true): boolean => {
+        if (!value && value !== 0 && value !== false) return true;
+        if (typeof value === "string") return (trim ? value.trim() : value).length === 0;
+        if (Array.isArray(value)) {
+            if (trim) return value.filter(i => i != null).length === 0;
+            return value.length === 0;
+        }
         return false;
     },
-    isNotEmpty: (value: any): boolean => {
-        if (!value) return false;
-        if (typeof value === "string" && value.trim().length > 0) return true;
-        if (Array.isArray(value) && value.length > 0) return true;
+    isNotEmpty: (value: any, trim = true): boolean => {
+        if (!value && value !== 0 && value !== false) return false;
+        if (typeof value === "string" && (trim ? value.trim() : value).length > 0) return true;
+        if (typeof value === "object" && Array.isArray(value)) {
+            if (trim) return value.filter(i => i != null).length > 0;
+            return value.length > 0;
+        }
         return false;
     }
 }));
@@ -106,6 +116,19 @@ describe("mapServiceType", () => {
     it("passes through 'RCS' unchanged", () => {
         expect(mapServiceType("RCS")).toBe("RCS");
     });
+
+    it("returns empty string for empty string input", () => {
+        expect(mapServiceType("")).toBe("");
+    });
+
+    it("handles null/undefined gracefully", () => {
+        expect(mapServiceType(null as unknown as string)).toBeNull();
+        expect(mapServiceType(undefined as unknown as string)).toBeUndefined();
+    });
+
+    it("does not trim — ' any ' passes through unchanged", () => {
+        expect(mapServiceType(" any ")).toBe(" any ");
+    });
 });
 
 // ============================================================
@@ -113,24 +136,32 @@ describe("mapServiceType", () => {
 // ============================================================
 
 describe("sendMessage with Tahoe GUIDs", () => {
-    it("maps 'any;-;+11234567890' to produce script with 'iMessage;-;' not 'any;-;'", () => {
+    it("maps 'any;-;+11234567890' to 'iMessage;-;+11234567890' in script", () => {
         const script = sendMessage("any;-;+11234567890", "Hello", "");
-        expect(script).not.toBeNull();
-        expect(script).toContain("iMessage;-;");
+        expect(script).toContain('chat id "iMessage;-;+11234567890"');
         expect(script).not.toContain("any;-;");
     });
 
     it("preserves 'iMessage;-;+11234567890'", () => {
         const script = sendMessage("iMessage;-;+11234567890", "Hello", "");
-        expect(script).not.toBeNull();
-        expect(script).toContain("iMessage;-;");
+        expect(script).toContain('chat id "iMessage;-;+11234567890"');
     });
 
     it("preserves 'SMS;-;+11234567890'", () => {
         const script = sendMessage("SMS;-;+11234567890", "Hello", "");
-        expect(script).not.toBeNull();
-        expect(script).toContain("SMS;-;");
+        expect(script).toContain('chat id "SMS;-;+11234567890"');
         expect(script).not.toContain("iMessage;-;");
+    });
+
+    it("maps 'any' in group chat GUIDs (any;+;chatXXX)", () => {
+        const script = sendMessage("any;+;chat123456789", "Hello", "");
+        expect(script).toContain('chat id "iMessage;+;chat123456789"');
+        expect(script).not.toContain("any;+;");
+    });
+
+    it("preserves group chat GUID with iMessage service", () => {
+        const script = sendMessage("iMessage;+;chat123456789", "Hello", "");
+        expect(script).toContain('chat id "iMessage;+;chat123456789"');
     });
 });
 
@@ -139,18 +170,24 @@ describe("sendMessage with Tahoe GUIDs", () => {
 // ============================================================
 
 describe("sendMessageFallback with Tahoe GUIDs", () => {
-    it("maps 'any;-;+11234567890' to produce 'service type = iMessage' not 'service type = any'", () => {
+    it("maps 'any;-;+11234567890' to 'service type = iMessage' with correct address", () => {
         const script = sendMessageFallback("any;-;+11234567890", "Hello", "");
-        expect(script).not.toBeNull();
         expect(script).toContain("service type = iMessage");
+        expect(script).toContain('"+11234567890"');
         expect(script).not.toContain("service type = any");
     });
 
-    it("preserves 'SMS;-;+11234567890'", () => {
+    it("preserves 'SMS;-;+11234567890' with correct address", () => {
         const script = sendMessageFallback("SMS;-;+11234567890", "Hello", "");
-        expect(script).not.toBeNull();
         expect(script).toContain("service type = SMS");
+        expect(script).toContain('"+11234567890"');
         expect(script).not.toContain("service type = iMessage");
+    });
+
+    it("preserves 'iMessage;-;+11234567890'", () => {
+        const script = sendMessageFallback("iMessage;-;+11234567890", "Hello", "");
+        expect(script).toContain("service type = iMessage");
+        expect(script).toContain('"+11234567890"');
     });
 });
 
@@ -159,9 +196,26 @@ describe("sendMessageFallback with Tahoe GUIDs", () => {
 // ============================================================
 
 describe("startChat with Tahoe service type", () => {
-    it("maps service 'any' to produce 'service type = iMessage'", () => {
+    it("maps service 'any' to 'service type = iMessage'", () => {
         const script = startChat(["+11234567890"], "any", "Hello");
         expect(script).toContain("service type = iMessage");
         expect(script).not.toContain("service type = any");
+    });
+
+    it("preserves 'iMessage' service type", () => {
+        const script = startChat(["+11234567890"], "iMessage", "Hello");
+        expect(script).toContain("service type = iMessage");
+    });
+
+    it("preserves 'SMS' service type", () => {
+        const script = startChat(["+11234567890"], "SMS", "Hello");
+        expect(script).toContain("service type = SMS");
+        expect(script).not.toContain("service type = iMessage");
+    });
+
+    it("preserves 'RCS' service type", () => {
+        const script = startChat(["+11234567890"], "RCS", "Hello");
+        expect(script).toContain("service type = RCS");
+        expect(script).not.toContain("service type = iMessage");
     });
 });

@@ -14,6 +14,7 @@ const osVersion = macosVersion();
  * AppleScript still requires the canonical service type.
  */
 export const mapServiceType = (service: string): string => {
+    if (!service) return service;
     if (service.toLowerCase() === "any") return "iMessage";
     return service;
 };
@@ -196,6 +197,10 @@ export const sendMessage = (chatGuid: string, message: string, attachment: strin
         const service = mapServiceType(strSplit[0]);
         const addr = strSplit[1];
         chatGuid = `${service};-;${getiMessageAddressFormat(addr)}`;
+    } else if (chatGuid.includes(";+;")) {
+        // Group chat: remap Tahoe's `any` service type in the chat ID reference
+        const strSplit = chatGuid.split(";+;");
+        chatGuid = `${mapServiceType(strSplit[0])};+;${strSplit[1]}`;
     }
 
     // Return the script
