@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.4](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.4) - 2026-04-14
+
+- [`c74e226`](https://github.com/markthebest12/bluebubbles-server/commit/c74e226115f29c79a2b8f9d0dd53c55f93d1909d) fix: re-enable npmRebuild (uses prebuild-install for correct ABI) + asarUnpack for .node files
+
 ## [v1.11.3](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.3) - 2026-04-14
 
 - [`ed2a1a2`](https://github.com/markthebest12/bluebubbles-server/commit/ed2a1a26f7cbd0b3c64d6f165e1657f7cdae17c0) fix: disable npmRebuild to preserve electron-rebuild'd native modules
