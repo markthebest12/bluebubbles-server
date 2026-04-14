@@ -12,6 +12,9 @@ const path = require("path");
 const { merge } = require("webpack-merge");
 const webpack = require("webpack");
 
+// webpack config expects cwd to be packages/server
+process.chdir(path.resolve(__dirname, "../packages/server"));
+
 const baseConfig = require(path.resolve(__dirname, "../packages/server/scripts/webpack.main.config"));
 
 // Merge with production mode, strip the type checker plugin
