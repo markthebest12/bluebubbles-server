@@ -5,6 +5,11 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.10.2](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.2) - 2026-04-14
+
+- [`ae06179`](https://github.com/markthebest12/bluebubbles-server/commit/ae06179ba173bd729ce6c58e2c1d99405d79bc3f) fix: guard headless null window access in preChecks (#14) (#23)
+- [`0b2fe54`](https://github.com/markthebest12/bluebubbles-server/commit/0b2fe5415232b5e4f0f4c3ecf003aedd86e90f70) fix: handle Tahoe NULL text column with attributedBody fallback (#19) (#22)
+
 ## [v1.10.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.0) - 2026-04-13
 
 - [`25160b7`](https://github.com/markthebest12/bluebubbles-server/commit/25160b7d23de324845e985fd9fd60c6d68296b8a) feat: include authorization header in webhook requests (#11)
