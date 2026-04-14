@@ -4,7 +4,9 @@ All notable changes to the BlueBubbles Server fork will be documented in this fi
 
 This project uses [Semantic Versioning](https://semver.org/) managed by [Uplift](https://uplift.dev/).
 
-## [Unreleased]
+## v1.9.9 — Fork Baseline
+
+Based on upstream `development` branch (ahead of upstream v1.9.9 release).
 
 ### Inherited from upstream development (unreleased in upstream)
 
@@ -18,3 +20,11 @@ This project uses [Semantic Versioning](https://semver.org/) managed by [Uplift]
 - fix: adds content-length header in file responses
 - fix: exclude sensitive configs from being logged
 - fix: menu bar icon in reduced transparency mode
+
+### Fork additions
+
+- fix: use persistent flag on fs.watch to prevent watcher death on idle (#8)
+- fix: guard message.text null access in webhook/message handlers (#12)
+- feat: include authorization header in webhook requests (#11)
+- test: add regression tests for typing endpoint wiring (#10)
+- ci: full CI pipeline with quality gates (#7)
