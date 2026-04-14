@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.1) - 2026-04-14
+
+- [`94726ae`](https://github.com/markthebest12/bluebubbles-server/commit/94726ae0aa85225811d5f1d5c08915a27e9b0e34) fix: set cwd to packages/server in build-no-typecheck.js
+
 ## [v1.11.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.0) - 2026-04-14
 
 - [`1326f15`](https://github.com/markthebest12/bluebubbles-server/commit/1326f15ec01aee92a69f83a5a88bc96e93f5772a) feat: add deploy script with rollback for canon (#28)
