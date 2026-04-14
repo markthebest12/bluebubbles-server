@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
+## Unreleased
+
 ## v1.9.9 — Fork Baseline
 
 Based on upstream `development` branch (ahead of upstream v1.9.9 release).
