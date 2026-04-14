@@ -421,14 +421,16 @@ class BlueBubblesServer extends EventEmitter {
                     `Please enable Full-Disk Access in System Preferences > Security & Privacy.`
             };
 
-            dialog.showMessageBox(this.window, dialogOpts).then(returnValue => {
-                if (returnValue.response === 0) {
-                    this.relaunch();
-                } else if (returnValue.response === 1) {
-                    FileSystem.executeAppleScript(openSystemPreferences());
-                    app.quit();
-                }
-            });
+            if (this.window) {
+                dialog.showMessageBox(this.window, dialogOpts).then(returnValue => {
+                    if (returnValue.response === 0) {
+                        this.relaunch();
+                    } else if (returnValue.response === 1) {
+                        FileSystem.executeAppleScript(openSystemPreferences());
+                        app.quit();
+                    }
+                });
+            }
         }
 
         this.logger.info("Initializing FindMy Repository...");
@@ -792,7 +794,7 @@ class BlueBubblesServer extends EventEmitter {
         // Start minimized if enabled
         const startMinimized = Server().repo.getConfig("start_minimized") as boolean;
         if (startMinimized) {
-            this.window.minimize();
+            this.window?.minimize();
         }
 
         // Disable the encryp coms setting if it's enabled.
@@ -891,15 +893,17 @@ class BlueBubblesServer extends EventEmitter {
         const password = this.repo.getConfig("password") as string;
         const tutorialFinished = this.repo.getConfig("tutorial_is_done") as boolean;
         if (tutorialFinished && isEmpty(password)) {
-            dialog.showMessageBox(this.window, {
-                type: "warning",
-                buttons: ["OK"],
-                title: "BlueBubbles Warning",
-                message: "No Password Set!",
-                detail:
-                    `No password is currently set. BlueBubbles will not function correctly without one. ` +
-                    `Please go to the configuration page, fill in a password, and save the configuration.`
-            });
+            if (this.window) {
+                dialog.showMessageBox(this.window, {
+                    type: "warning",
+                    buttons: ["OK"],
+                    title: "BlueBubbles Warning",
+                    message: "No Password Set!",
+                    detail:
+                        `No password is currently set. BlueBubbles will not function correctly without one. ` +
+                        `Please go to the configuration page, fill in a password, and save the configuration.`
+                });
+            }
         }
 
         // Show a warning if the time is off by a reasonable amount (5 seconds)
