@@ -9,7 +9,13 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 - [`bc10360`](https://github.com/markthebest12/bluebubbles-server/commit/bc1036075bf1c50ddb3d665ab954a2670b8f05a8) research: Accessibility API typing indicators prototype (#20) (#25)
 - [`e057257`](https://github.com/markthebest12/bluebubbles-server/commit/e057257cb6e4ba6f33925fed42edfbd303203126) fix: add exponential backoff retry for webhook delivery (#15) (#24)
-- [`bc10360`](https://github.com/markthebest12/bluebubbles-server/commit/bc1036075bf1c50ddb3d665ab954a2670b8f05a8) research: Accessibility API typing indicators prototype (#20) (#25)
+- [`ae06179`](https://github.com/markthebest12/bluebubbles-server/commit/ae06179b) fix: guard headless null window access in preChecks (#14) (#23)
+- [`0b2fe54`](https://github.com/markthebest12/bluebubbles-server/commit/0b2fe541) fix: handle Tahoe NULL text column with attributedBody fallback (#19) (#22)
+
+## [v1.10.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.1) - 2026-04-14
+
+- [`3158d2e`](https://github.com/markthebest12/bluebubbles-server/commit/3158d2e7) fix: map Tahoe 'any' service type to 'iMessage' in AppleScript sends (#18) (#21)
+- [`f7ae4b3`](https://github.com/markthebest12/bluebubbles-server/commit/f7ae4b33) docs: add headless operation research and deployment guide (#17)
 
 ## [v1.10.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.0) - 2026-04-13
 

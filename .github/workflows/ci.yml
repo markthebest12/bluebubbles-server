@@ -103,10 +103,39 @@ jobs:
           name: npm-audit-report
           path: /tmp/npm-audit.json
 
+  version-check:
+    name: Version Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: Check version consistency
+        run: |
+          ROOT_VER=$(node -p "require('./package.json').version")
+          SERVER_VER=$(node -p "require('./packages/server/package.json').version")
+
+          echo "root package.json:   $ROOT_VER"
+          echo "server package.json: $SERVER_VER"
+
+          # Root and server versions must match
+          if [[ "$ROOT_VER" != "$SERVER_VER" ]]; then
+            echo "::error::Version mismatch: root=$ROOT_VER server=$SERVER_VER"
+            exit 1
+          fi
+
+          # CHANGELOG must have an Unreleased section (Uplift append target)
+          if ! grep -q "## Unreleased" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md missing '## Unreleased' header (required by Uplift)"
+            exit 1
+          fi
+
+          echo "Version consistency: OK ($ROOT_VER)"
+
   ci-complete:
     name: CI Complete
     if: always()
-    needs: [lint, typecheck, test, security-scan, dep-audit]
+    needs: [lint, typecheck, test, security-scan, dep-audit, version-check]
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs
@@ -117,6 +146,7 @@ jobs:
             "test:${{ needs.test.result }}"
             "security-scan:${{ needs.security-scan.result }}"
             "dep-audit:${{ needs.dep-audit.result }}"
+            "version-check:${{ needs.version-check.result }}"
           )
           failed=0
           for entry in "${results[@]}"; do
