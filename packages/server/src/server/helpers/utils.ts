@@ -247,6 +247,7 @@ export const escapeOsaExp = (input: string) => {
  * @param input String to sanitize
  */
 export const onlyAlphaNumeric = (input: string) => {
+    if (!input) return input;
     return input.replace(/[\W_]+/g, "");
 };
 
