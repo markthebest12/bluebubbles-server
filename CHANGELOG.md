@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.3](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.3) - 2026-04-14
+
+- [`ed2a1a2`](https://github.com/markthebest12/bluebubbles-server/commit/ed2a1a26f7cbd0b3c64d6f165e1657f7cdae17c0) fix: disable npmRebuild to preserve electron-rebuild'd native modules
+
 ## [v1.11.2](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.2) - 2026-04-14
 
 - [`7fa95b7`](https://github.com/markthebest12/bluebubbles-server/commit/7fa95b789eb619b63cd3e855d530e73e9b6e849f) fix: prevent setup wizard flash before server config loads (#29)
