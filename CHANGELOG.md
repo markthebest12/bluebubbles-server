@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.10.4](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.4) - 2026-04-14
+
+- [`22f61c5`](https://github.com/markthebest12/bluebubbles-server/commit/22f61c5fc12a8e936245f4596dd385cc13ef9c62) fix: release workflow changelog push + version consistency CI gate (#27)
+
 ## [v1.10.3](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.3) - 2026-04-14
 
 - [`bc10360`](https://github.com/markthebest12/bluebubbles-server/commit/bc1036075bf1c50ddb3d665ab954a2670b8f05a8) research: Accessibility API typing indicators prototype (#20) (#25)
