@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.5](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.5) - 2026-04-14
+
+- [`394d290`](https://github.com/markthebest12/bluebubbles-server/commit/394d2909557f2e246a151cbcf5654950c6665c96) fix: use synchronize instead of migrationsRun to prevent DB init hang
+
 ## [v1.11.4](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.4) - 2026-04-14
 
 - [`c74e226`](https://github.com/markthebest12/bluebubbles-server/commit/c74e226115f29c79a2b8f9d0dd53c55f93d1909d) fix: re-enable npmRebuild (uses prebuild-install for correct ABI) + asarUnpack for .node files
