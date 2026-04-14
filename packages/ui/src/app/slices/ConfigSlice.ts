@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ipcRenderer } from 'electron';
 
-const initialState: NodeJS.Dict<any> = {};
+const initialState: NodeJS.Dict<any> = { _configLoaded: false };
 
 export type ConfigItem = {
     name: string,
@@ -32,6 +32,9 @@ export const ConfigSlice = createSlice({
                 if (state[i.name] === i.value) continue;
                 state[i.name] = i.value;
             }
+
+            // Mark config as loaded after first bulk load from server
+            state._configLoaded = true;
         }
     }
 });
