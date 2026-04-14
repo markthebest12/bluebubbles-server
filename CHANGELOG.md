@@ -5,6 +5,11 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.10.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.1) - 2026-04-14
+
+- [`3158d2e`](https://github.com/markthebest12/bluebubbles-server/commit/3158d2e7be58a7be85b81fa32aa71ab9a814857a) fix: map Tahoe 'any' service type to 'iMessage' in AppleScript sends (#18) (#21)
+- [`f7ae4b3`](https://github.com/markthebest12/bluebubbles-server/commit/f7ae4b33bd01fd6d4437e972f8372c0c9a3616d9) docs: add headless operation research and deployment guide (#17)
+
 ## [v1.10.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.10.0) - 2026-04-13
 
 - [`25160b7`](https://github.com/markthebest12/bluebubbles-server/commit/25160b7d23de324845e985fd9fd60c6d68296b8a) feat: include authorization header in webhook requests (#11)
