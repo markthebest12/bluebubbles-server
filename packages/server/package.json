@@ -20,20 +20,6 @@
         "rebuild": "electron-rebuild -f better-sqlite3 node-mac-contacts node-mac-permissions",
         "postinstall": "electron-rebuild install-app-deps && npm run rebuild"
     },
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
-    },
-    "lint-staged": {
-        "{src,test,mocks}/**/*.{json,css,scss,md}": [
-            "prettier --config ./.prettierrc --ignore-path ./.prettierignore --write"
-        ],
-        "{src,test,mocks}/**/*.{js,ts,tsx}": [
-            "prettier --config ./.prettierrc --ignore-path ./.prettierignore --write",
-            "eslint --ext=jsx,js,ts,tsx --fix src"
-        ]
-    },
     "devDependencies": {
         "@babel/core": "^7.16.12",
         "@babel/plugin-proposal-decorators": "^7.24.7",
