@@ -1,36 +1,29 @@
 # .uplift.yml
 bumps:
   - file: package.json
-    regex:
-      - pattern: '"version":\s*"(?P<version>.*)"'
+    json:
+      - path: "version"
         semver: true
-        count: 1
   - file: packages/server/package.json
-    regex:
-      - pattern: '"version":\s*"(?P<version>.*)"'
+    json:
+      - path: "version"
         semver: true
-        count: 1
   # Note: packages/ui/package.json intentionally excluded — only bump on UI changes
 
 changelog:
   include:
-    - "feat"
-    - "fix"
-    - "perf"
-    - "refactor"
+    - feat
+    - fix
+    - perf
+    - refactor
   exclude:
-    - title: "^Merge"
-    - title: "^chore"
-  trim_header: true
+    - "^Merge"
+    - "^chore"
+  trimHeader: true
 
 git:
-  ignore:
-    - packages/server/package-lock.json
-  include:
+  includeArtifacts:
     - package-lock.json
-  push:
-    options:
-      - "--follow-tags"
 
 commitAuthor:
   name: uplift-bot
