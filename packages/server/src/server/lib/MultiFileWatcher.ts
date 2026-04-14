@@ -37,7 +37,7 @@ export class MultiFileWatcher extends EventEmitter {
             this.previousStats[filePath] = fs.statSync(filePath);
         }
 
-        const watcher = fs.watch(filePath, { encoding: "utf8", persistent: false, recursive: false });
+        const watcher = fs.watch(filePath, { encoding: "utf8", persistent: true, recursive: false });
         watcher.on("change", async (eventType, _) => {
             if (eventType !== "change") return;
 
