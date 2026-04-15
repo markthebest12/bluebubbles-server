@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.9](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.9) - 2026-04-14
+
+- [`1bbff2d`](https://github.com/markthebest12/bluebubbles-server/commit/1bbff2dfbd0fa672db013690242dd2a67a2ffb96) fix: add babel-plugin-transform-typescript-metadata for typeorm decorator support (#36)
+
 ## [v1.11.8](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.8) - 2026-04-14
 
 - [`8353350`](https://github.com/markthebest12/bluebubbles-server/commit/83533509af0f66fc3fd640db9c090aa4e8852cc6) fix: set file log level to info, fix Monterey version warning text (#33) (#34)
