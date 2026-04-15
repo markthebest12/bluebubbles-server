@@ -24,7 +24,7 @@ export class iCloudInterface {
         const data = await Server().privateApi.cloud.getContactCard(address);
         const avatarPath = data?.data?.avatar_path;
         if (isNotEmpty(avatarPath) && loadAvatar) {
-            data.data.avatar = bytesToBase64(fs.readFileSync(avatarPath));
+            data.data.avatar = bytesToBase64(fs.readFileSync(avatarPath) as unknown as Uint8Array);
             delete data.data.avatar_path;
         }
 
