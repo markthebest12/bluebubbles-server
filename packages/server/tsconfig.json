@@ -6,7 +6,7 @@
             "@server": ["server/index"],
             "@server/*": ["server/*"],
             "@windows/*": ["windows/*"],
-            "@trays/*": ["trays/*"],
+            "@trays/*": ["trays/*"]
         },
         "outDir": "./dist",
         "strictNullChecks": false,
@@ -14,5 +14,5 @@
         "emitDecoratorMetadata": true
     },
     "include": ["src"],
-    "exclude": ["dist", "node_modules", "*.js", "tsconfig.json"]
+    "exclude": ["dist", "node_modules", "*.js", "tsconfig.json", "src/**/__tests__/**", "src/**/*.test.ts"]
 }
