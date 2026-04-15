@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.7](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.7) - 2026-04-14
+
+- [`37775d6`](https://github.com/markthebest12/bluebubbles-server/commit/37775d6171701137c9470efacfce8b1dcaf6bc59) fix: accessibility permission check stuck on Fail (#30) (#31)
+
 ## [v1.11.6](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.6) - 2026-04-14
 
 - [`bef9b0f`](https://github.com/markthebest12/bluebubbles-server/commit/bef9b0ffd1b35144b0dcbecbde5866215e0422d3) fix: don't remap service prefix in chat GUID for sendMessage
