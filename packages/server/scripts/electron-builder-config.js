@@ -60,5 +60,6 @@ module.exports = {
         "sign": false,
         "writeUpdateInfo": false
     },
+    "afterPack": "./scripts/fix-codesign-identity.js",
     // "afterSign": "./scripts/notarize.js"
 };
