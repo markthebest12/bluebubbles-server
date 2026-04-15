@@ -77,10 +77,12 @@ const findProcess = require("find-process");
 
 const osVersion = macosVersion();
 
-// Set the log format
+// Set the log format and level — file transport defaults to info to reduce log noise
 const logFormat = "[{y}-{m}-{d} {h}:{i}:{s}.{ms}][{level}]{text}";
 ServerLog.transports.console.format = logFormat;
+ServerLog.transports.console.level = "debug";
 ServerLog.transports.file.format = logFormat;
+ServerLog.transports.file.level = "info";
 
 // Patch in the original package path so we don't use @bluebubbles/server
 ServerLog.transports.file.resolvePath = () =>
@@ -924,9 +926,9 @@ class BlueBubblesServer extends EventEmitter {
 
         this.setDockIcon();
 
-        // Check if on Big Sur+. If we are, then create a log/alert saying that
+        // macOS 12+ (Monterey and later) removed AppleScript group chat creation support
         if (isMinMonterey) {
-            this.logger.debug("Warning: macOS Monterey does NOT support creating group chats due to API limitations!");
+            this.logger.debug("Warning: macOS 12+ does NOT support creating group chats via AppleScript!");
         } else if (isMinBigSur) {
             this.logger.debug("Warning: macOS Big Sur does NOT support creating group chats due to API limitations!");
         }
