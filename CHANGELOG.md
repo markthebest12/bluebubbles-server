@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.10](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.10) - 2026-04-14
+
+- [`a7f6add`](https://github.com/markthebest12/bluebubbles-server/commit/a7f6add528e1bedddc2ac0198588ba3d2b006340) fix: resolve webpack production build TS errors (#39)
+
 ## [v1.11.8](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.8) - 2026-04-14
 
 - [`8353350`](https://github.com/markthebest12/bluebubbles-server/commit/83533509af0f66fc3fd640db9c090aa4e8852cc6) fix: set file log level to info, fix Monterey version warning text (#33) (#34)
