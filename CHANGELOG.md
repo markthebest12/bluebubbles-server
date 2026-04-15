@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.8](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.8) - 2026-04-14
+
+- [`8353350`](https://github.com/markthebest12/bluebubbles-server/commit/83533509af0f66fc3fd640db9c090aa4e8852cc6) fix: set file log level to info, fix Monterey version warning text (#33) (#34)
+
 ## [v1.11.7](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.7) - 2026-04-14
 
 - [`37775d6`](https://github.com/markthebest12/bluebubbles-server/commit/37775d6171701137c9470efacfce8b1dcaf6bc59) fix: accessibility permission check stuck on Fail (#30) (#31)
