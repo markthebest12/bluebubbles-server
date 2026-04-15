@@ -191,16 +191,14 @@ export const sendMessage = (chatGuid: string, message: string, attachment: strin
     // If it's not a GUID, throw an error
     if (!chatGuid.includes(";")) throw new Error(`Invalid GUID! Can't send message to: ${chatGuid}`);
 
-    // If the chat is to an individual, we need to make sure the number is formatted correctly
+    // If the chat is to an individual, we need to make sure the number is formatted correctly.
+    // Keep the service prefix as-is (e.g. "any") for the chat ID reference — Messages.app
+    // on Tahoe only recognizes "any;-;" chats, not "iMessage;-;".
+    // mapServiceType is only for the AppleScript `service type` parameter, not chat IDs.
     if (chatGuid.includes(";-;")) {
         const strSplit = chatGuid.split(";-;");
-        const service = mapServiceType(strSplit[0]);
         const addr = strSplit[1];
-        chatGuid = `${service};-;${getiMessageAddressFormat(addr)}`;
-    } else if (chatGuid.includes(";+;")) {
-        // Group chat: remap Tahoe's `any` service type in the chat ID reference
-        const strSplit = chatGuid.split(";+;");
-        chatGuid = `${mapServiceType(strSplit[0])};+;${strSplit[1]}`;
+        chatGuid = `${strSplit[0]};-;${getiMessageAddressFormat(addr)}`;
     }
 
     // Return the script
