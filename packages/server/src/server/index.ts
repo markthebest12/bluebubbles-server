@@ -340,8 +340,11 @@ class BlueBubblesServer extends EventEmitter {
                 continue;
             }
 
-            const shouldLog = !normalizedKey.includes('token') && !normalizedKey.includes('key') &&
-                              !normalizedKey.includes('password') && !normalizedKey.includes('secret');
+            const shouldLog =
+                !normalizedKey.includes("token") &&
+                !normalizedKey.includes("key") &&
+                !normalizedKey.includes("password") &&
+                !normalizedKey.includes("secret");
             if (shouldLog) {
                 this.logger.info(`[ENV] Setting config value ${normalizedKey} to ${value} (persist=${persist})`);
             }
@@ -476,11 +479,7 @@ class BlueBubblesServer extends EventEmitter {
 
         try {
             this.logger.info("Initializing proxy services...");
-            this.proxyServices = [
-                new NgrokService(),
-                new CloudflareService(),
-                new ZrokService()
-            ];
+            this.proxyServices = [new NgrokService(), new CloudflareService(), new ZrokService()];
         } catch (ex: any) {
             this.logger.error(`Failed to initialize proxy services! ${ex?.message ?? String(ex)}}`);
         }
@@ -1024,7 +1023,10 @@ class BlueBubblesServer extends EventEmitter {
         if (prevConfig.zrok_reserved_name !== nextConfig.zrok_reserved_name && !proxiesRestarted) {
             // If we previously had a reserved name and it changes from a non-empty value to an empty value,
             // we need to release the previous reserved token
-            if (isNotEmpty(prevConfig.zrok_reserved_name as string) && isEmpty(nextConfig.zrok_reserved_name as string)) {
+            if (
+                isNotEmpty(prevConfig.zrok_reserved_name as string) &&
+                isEmpty(nextConfig.zrok_reserved_name as string)
+            ) {
                 this.logger.debug("Releasing previous Zrok reserved token due to the reserved name being cleared");
                 await ZrokManager.safeRelease(prevConfig.zrok_reserved_token as string, { clearToken: true });
             }
@@ -1258,13 +1260,13 @@ class BlueBubblesServer extends EventEmitter {
             {
                 name: "Accessibility (Optional)",
                 pass: systemPreferences.isTrustedAccessibilityClient(false),
-                solution: "Open System Preferences > Security > Privacy > Accessibility, then add BlueBubbles"
+                solution: "Open System Settings > Privacy & Security > Accessibility, then add BlueBubbles"
             },
             {
                 name: "Full Disk Access",
                 pass: this.hasDiskAccess,
                 solution:
-                    "Open System Preferences > Security > Privacy > Full Disk Access, " +
+                    "Open System Settings > Privacy & Security > Full Disk Access, " +
                     "then add BlueBubbles. Lastly, restart BlueBubbles."
             }
         ];
@@ -1290,10 +1292,7 @@ class BlueBubblesServer extends EventEmitter {
 
         const cache = new IMessageCache();
         this.iMessageListener = new IMessageListener({
-            filePaths: [
-                this.iMessageRepo.dbPath,
-                this.iMessageRepo.dbPathWal
-            ],
+            filePaths: [this.iMessageRepo.dbPath, this.iMessageRepo.dbPathWal],
             cache,
             repo: this.iMessageRepo
         });
@@ -1317,13 +1316,13 @@ class BlueBubblesServer extends EventEmitter {
          * need to be fully sent before forwarding to any clients. If we emit a notification
          * before the message is sent, it will cause a duplicate.
          */
-        this.iMessageListener.on("new-entry", (item) => this.handleNewMessage(item));
+        this.iMessageListener.on("new-entry", item => this.handleNewMessage(item));
 
         /**
          * Message listener checking for updated messages. This means either the message's
          * delivered date or read date have changed since the last time we checked the database.
          */
-        this.iMessageListener.on("updated-entry", (item) => this.handleUpdatedMessage(item));
+        this.iMessageListener.on("updated-entry", item => this.handleUpdatedMessage(item));
 
         /**
          * Message listener for messages that have errored out
@@ -1517,8 +1516,8 @@ class BlueBubblesServer extends EventEmitter {
 
     private async handleNewMessage(item: Message) {
         const newMessage = await insertChatParticipants(item);
-        this.logger.info(
-            `New Message from ${newMessage.isFromMe ? 'You' : obfuscatedHandle(newMessage.handle?.id)}, ${newMessage.contentString()}`);
+        const sender = newMessage.isFromMe ? "You" : obfuscatedHandle(newMessage.handle?.id);
+        this.logger.info(`New Message from ${sender}, ${newMessage.contentString()}`);
 
         // Manually send the message to the socket so we can serialize it with
         // all the extra data
