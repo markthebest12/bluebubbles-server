@@ -1,8 +1,14 @@
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
+import swc from "unplugin-swc";
 
 export default defineConfig({
-    plugins: [tsconfigPaths()],
+    plugins: [
+        tsconfigPaths(),
+        // SWC reads emitDecoratorMetadata from tsconfig.json, aligning
+        // test transforms with the Babel production build (PR #36).
+        swc.vite()
+    ],
     test: {
         globals: true,
         environment: "node",
@@ -12,7 +18,6 @@ export default defineConfig({
             reporter: ["text", "json", "html"],
             reportsDirectory: "./coverage"
         },
-        // Use babel transform for TypeORM decorator metadata support
         pool: "forks"
     }
 });
