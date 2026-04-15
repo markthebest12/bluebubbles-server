@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.12](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.12) - 2026-04-14
+
+- [`453cac2`](https://github.com/markthebest12/bluebubbles-server/commit/453cac255d59a7f3409a1e8b0d67b2088c2948f1) fix: remove babel-plugin-transform-typescript-metadata (causes TDZ errors) (#41)
+
 ## [v1.11.11](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.11) - 2026-04-14
 
 - [`d01b7dc`](https://github.com/markthebest12/bluebubbles-server/commit/d01b7dc3e17755084ae9ca86f693305abee353e7) fix: disable terser mangling to prevent decorator TDZ errors (#40)
