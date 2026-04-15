@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.11](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.11) - 2026-04-14
+
+- [`d01b7dc`](https://github.com/markthebest12/bluebubbles-server/commit/d01b7dc3e17755084ae9ca86f693305abee353e7) fix: disable terser mangling to prevent decorator TDZ errors (#40)
+
 ## [v1.11.10](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.10) - 2026-04-14
 
 - [`a7f6add`](https://github.com/markthebest12/bluebubbles-server/commit/a7f6add528e1bedddc2ac0198588ba3d2b006340) fix: resolve webpack production build TS errors (#39)
