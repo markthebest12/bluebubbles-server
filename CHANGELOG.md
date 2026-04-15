@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.11.6](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.6) - 2026-04-14
+
+- [`bef9b0f`](https://github.com/markthebest12/bluebubbles-server/commit/bef9b0ffd1b35144b0dcbecbde5866215e0422d3) fix: don't remap service prefix in chat GUID for sendMessage
+
 ## [v1.11.5](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.5) - 2026-04-14
 
 - [`394d290`](https://github.com/markthebest12/bluebubbles-server/commit/394d2909557f2e246a151cbcf5654950c6665c96) fix: use synchronize instead of migrationsRun to prevent DB init hang
