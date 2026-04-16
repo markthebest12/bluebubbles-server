@@ -5,6 +5,11 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.12.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.0) - 2026-04-15
+
+- [`9bc9051`](https://github.com/markthebest12/bluebubbles-server/commit/9bc9051a40716c873cbeb990c9ba30cd0e3c09b4) feat: ax-helper — Accessibility API integration for Tahoe (#43)
+- [`9bc9051`](https://github.com/markthebest12/bluebubbles-server/commit/9bc9051a40716c873cbeb990c9ba30cd0e3c09b4) feat: ax-helper — Accessibility API integration for Tahoe (#43)
+
 ## [v1.11.12](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.11.12) - 2026-04-14
 
 - [`453cac2`](https://github.com/markthebest12/bluebubbles-server/commit/453cac255d59a7f3409a1e8b0d67b2088c2948f1) fix: remove babel-plugin-transform-typescript-metadata (causes TDZ errors) (#41)
