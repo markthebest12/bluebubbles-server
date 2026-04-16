@@ -1,0 +1,38 @@
+# Electron 25.9.8 — pinned for compatibility, major version bump requires extensive testing
+# Tracking: https://github.com/electron/electron/releases
+GHSA-6r2x-8pq8-9489
+GHSA-vmqv-hx8q-j7mg
+GHSA-5rqw-r77c-jp79
+GHSA-xj5x-m3f3-5x3h
+GHSA-r5p7-gp4j-qhrx
+GHSA-3c8v-cfp5-9885
+GHSA-xwr5-m59h-vwqr
+GHSA-532v-xpq5-8h95
+GHSA-mwmh-mq4g-g6gr
+GHSA-9w97-2464-8783
+GHSA-8337-3p73-46f4
+GHSA-jjp3-mq3x-295m
+GHSA-9wfr-w7mm-pc7f
+GHSA-jfqx-fxh3-c62j
+GHSA-4p4r-m79c-wq3v
+GHSA-9899-m83m-qhpj
+GHSA-f37v-82c4-4x64
+GHSA-f3pv-wv63-48x8
+
+# electron-updater — requires electron-updater@6.x breaking change
+GHSA-9jxc-qjr9-vjxq
+
+# electron-builder chain (tar, @tootallnate/once, http-proxy-agent, builder-util)
+# Requires electron-builder@26.x breaking change
+GHSA-vpq2-c234-7xj6
+GHSA-34x7-hfp2-rc4v
+GHSA-8qq5-rm4j-mr97
+GHSA-83g3-92jg-28cx
+GHSA-qffp-2rhf-9h96
+GHSA-9ppj-qmqm-q256
+GHSA-r6q2-hw4h-h46w
+
+# http-proxy-middleware — in @types/webpack-dev-server devDependency
+GHSA-c7qv-q95q-8v27
+GHSA-9gqv-wp59-fq42
+GHSA-4www-5p9h-95mh
