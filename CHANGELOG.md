@@ -5,6 +5,11 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.12.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.1) - 2026-04-16
+
+- [`9518ef3`](https://github.com/markthebest12/bluebubbles-server/commit/9518ef3747e8f8aa80c2be2a33b0f83956e81163) fix: resolve all CI failures — lint, tests, deps (#44)
+- [`9518ef3`](https://github.com/markthebest12/bluebubbles-server/commit/9518ef3747e8f8aa80c2be2a33b0f83956e81163) fix: resolve all CI failures — lint, tests, deps (#44)
+
 ## [v1.12.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.0) - 2026-04-15
 
 - [`9bc9051`](https://github.com/markthebest12/bluebubbles-server/commit/9bc9051a40716c873cbeb990c9ba30cd0e3c09b4) feat: ax-helper — Accessibility API integration for Tahoe (#43)
