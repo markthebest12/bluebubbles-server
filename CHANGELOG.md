@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.12.2](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.2) - 2026-04-16
+
+- [`6e2edb1`](https://github.com/markthebest12/bluebubbles-server/commit/6e2edb1b5c0ded6b412f776f1f9ef3e5980334e8) fix: restore babel TypeORM metadata plugin + terser TDZ safeguards (#45)
+
 ## [v1.12.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.1) - 2026-04-16
 
 - [`9518ef3`](https://github.com/markthebest12/bluebubbles-server/commit/9518ef3747e8f8aa80c2be2a33b0f83956e81163) fix: resolve all CI failures — lint, tests, deps (#44)
