@@ -35,11 +35,11 @@ vi.mock("electron-log", () => ({
     transports: { file: { getFile: () => ({ path: "/tmp/fake.log" }) } }
 }));
 
-vi.mock("../../../fileSystem", () => ({
+vi.mock("@server/fileSystem", () => ({
     FileSystem: { baseDir: "/tmp", contactsDir: "/tmp" }
 }));
 
-vi.mock("../../../env", () => ({
+vi.mock("@server/env", () => ({
     isMinBigSur: true,
     isMinVentura: true,
     isMinMonterey: true,
@@ -52,7 +52,7 @@ vi.mock("../../../env", () => ({
 }));
 
 // Mock @server/helpers/utils — matches real impl signatures
-vi.mock("../../../helpers/utils", () => ({
+vi.mock("@server/helpers/utils", () => ({
     escapeOsaExp: (input: string) => {
         return input.replace(/\\/g, "\\\\\\\\").replace(/"/g, '\\\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`");
     },

@@ -6,9 +6,7 @@ vi.mock("axios");
 const mockGetWebhooks = vi.fn().mockResolvedValue([]);
 const mockGetConfig = vi.fn().mockReturnValue("test-password");
 
-// Use relative paths for vi.mock — alias-based paths (@server/...) don't
-// resolve correctly for mock matching in Vitest 4 with vite-tsconfig-paths.
-vi.mock("../../../index", () => ({
+vi.mock("@server", () => ({
     Server: () => ({
         repo: {
             getWebhooks: mockGetWebhooks,
@@ -17,7 +15,7 @@ vi.mock("../../../index", () => ({
     })
 }));
 
-vi.mock("../../../lib/logging/Loggable", () => ({
+vi.mock("@server/lib/logging/Loggable", () => ({
     Loggable: class {
         log = {
             debug: vi.fn(),

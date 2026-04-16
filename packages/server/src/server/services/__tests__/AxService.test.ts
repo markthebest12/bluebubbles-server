@@ -13,9 +13,7 @@ vi.mock("@server", () => ({
 }));
 
 // Mock Loggable to break circular dep chain.
-// Use source-relative path because AxService.ts uses relative imports,
-// and Vitest resolves vi.mock keys relative to the test file.
-vi.mock("../../lib/logging/Loggable", () => ({
+vi.mock("@server/lib/logging/Loggable", () => ({
     Loggable: class {
         log = {
             debug: vi.fn(),
