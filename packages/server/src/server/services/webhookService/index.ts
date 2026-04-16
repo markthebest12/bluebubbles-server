@@ -50,7 +50,9 @@ export class WebhookService extends Loggable {
             } catch (err) {
                 if (attempt < maxRetries) {
                     const delay = baseDelayMs * Math.pow(2, attempt - 1);
-                    this.log.debug(`Webhook delivery failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms: ${url}`);
+                    this.log.debug(
+                        `Webhook delivery failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms: ${url}`
+                    );
                     await new Promise(resolve => setTimeout(resolve, delay));
                 } else {
                     throw err;

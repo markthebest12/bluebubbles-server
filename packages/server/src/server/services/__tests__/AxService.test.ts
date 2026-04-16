@@ -5,14 +5,14 @@ vi.mock("child_process", () => ({
     execFile: vi.fn()
 }));
 
-// Mock @server to avoid Electron dependency chain
+// Mock @server to avoid Electron dependency chain (use alias and source paths)
 vi.mock("@server", () => ({
     Server: () => ({
         log: vi.fn()
     })
 }));
 
-// Mock the Loggable base class
+// Mock Loggable to break circular dep chain.
 vi.mock("@server/lib/logging/Loggable", () => ({
     Loggable: class {
         log = {
@@ -21,7 +21,14 @@ vi.mock("@server/lib/logging/Loggable", () => ({
             warn: vi.fn(),
             error: vi.fn()
         };
-    }
+    },
+    getLogger: () => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        on: vi.fn()
+    })
 }));
 
 import { execFile } from "child_process";
