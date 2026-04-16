@@ -217,10 +217,7 @@ export class MessageValidator {
     };
 
     static async validateMultipart(ctx: RouterContext, next: Next) {
-        const { parts, tempGuid } = ValidateInput(
-            ctx.request.body,
-            MessageValidator.multipartRules
-        );
+        const { parts, tempGuid } = ValidateInput(ctx.request.body, MessageValidator.multipartRules);
 
         // Validate the parts. We have a few rules for this:
         // 1. Each part must be a dictionary
@@ -235,8 +232,7 @@ export class MessageValidator {
             if (typeof part.partIndex !== "number") throw new BadRequest({ error: "Each partIndex must be a number" });
             if (!part.text && !part.attachment)
                 throw new BadRequest({ error: "Each part must have either a text or attachment" });
-            if (part.attachment && !part.name)
-                throw new BadRequest({ error: "Each attachment must have a name" });
+            if (part.attachment && !part.name) throw new BadRequest({ error: "Each attachment must have a name" });
             if (part.attachment) {
                 const aPath = path.join(FileSystem.getAttachmentDirectory("private-api"), part.attachment);
                 if (!fs.existsSync(aPath)) {
@@ -272,10 +268,8 @@ export class MessageValidator {
 
     static async validateAttachmentChunk(ctx: RouterContext, next: Next) {
         const { files } = ctx.request;
-        let {chunkIndex, totalChunks, method, isAudioMessage, effectId, subject, selectedMessageGuid } = ValidateInput(
-            ctx.request?.body,
-            MessageValidator.attachmentChunkRules
-        );
+        const { chunkIndex, totalChunks, method, isAudioMessage, effectId, subject, selectedMessageGuid } =
+            ValidateInput(ctx.request?.body, MessageValidator.attachmentChunkRules);
 
         // Convert the string values (form data) to their appropriate types.
         // Do it for both the request body and the parsed values. This is so whatever is
