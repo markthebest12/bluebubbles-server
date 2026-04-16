@@ -7,7 +7,9 @@ module.exports = {
         "build",
         "dist",
         "scripts/**/*",
-        "node_modules"
+        "node_modules",
+        "**/__tests__/**",
+        "**/*.test.ts"
     ],
     "extends": [
         "eslint:recommended",
