@@ -22,7 +22,7 @@ struct MessagesApp {
     func getMenuBar() -> AXUIElement? {
         var value: AnyObject?
         let err = AXUIElementCopyAttributeValue(element, kAXMenuBarAttribute as CFString, &value)
-        guard err == .success else { return nil }
+        guard err == .success, let value = value else { return nil }
         return (value as! AXUIElement)
     }
 }

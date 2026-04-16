@@ -128,7 +128,7 @@ case "check":
         exit(ExitCode.operationFailed.rawValue)
     }
 
-    let messages = MessagesApp.find()!
+    let messages = requireMessages()
     let menuBar = requireMenuBar(messages)
     let items = AXHelper.discoverMenuItems(menuBar)
     writeJSON(OutputResult(ok: true, op: "check", ms: elapsed(), trace: traceId, menuItems: items))

@@ -131,10 +131,8 @@ describe("AxService", () => {
                 }
             });
 
-            // Launch both simultaneously
             const [r1, r2] = await Promise.all([service.tapback("heart", "t1"), service.markRead("t2")]);
 
-            // tapback (50ms) should complete before mark-read starts
             expect(callOrder).toEqual([1, 2]);
             expect(r1.ok).toBe(true);
             expect(r2.ok).toBe(true);
@@ -142,22 +140,18 @@ describe("AxService", () => {
     });
 
     describe("error handling", () => {
-        it("returns error result on non-zero exit", async () => {
+        it("rejects on ax-helper failure (ok:false in output)", async () => {
             const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
             mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: any, cb: Function) => {
                 const error: any = new Error("exit code 1");
                 error.code = 1;
-                error.stdout = '{"ok":false,"op":"tapback","error":"menu_item_disabled"}';
-                error.stderr = "Menu item disabled";
-                cb(error, error.stdout, error.stderr);
+                cb(error, '{"ok":false,"op":"tapback","error":"menu_item_disabled"}', "Menu item disabled");
             });
 
-            const result = await service.tapback("heart", "t1");
-            expect(result.ok).toBe(false);
-            expect(result.error).toBe("menu_item_disabled");
+            await expect(service.tapback("heart", "t1")).rejects.toThrow("menu_item_disabled");
         });
 
-        it("returns error on timeout", async () => {
+        it("rejects on timeout", async () => {
             const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
             mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: any, cb: Function) => {
                 const error: any = new Error("TIMEOUT");
@@ -165,9 +159,37 @@ describe("AxService", () => {
                 cb(error, "", "");
             });
 
-            const result = await service.tapback("heart", "t1");
-            expect(result.ok).toBe(false);
-            expect(result.error).toContain("timeout");
+            await expect(service.tapback("heart", "t1")).rejects.toThrow("timeout");
+        });
+
+        it("sanitizes traceId to prevent injection", async () => {
+            const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
+            mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: any, cb: Function) => {
+                cb(null, '{"ok":true,"op":"mark-read","ms":1}', "");
+            });
+
+            // Invalid traceId should be silently dropped (not passed to CLI)
+            await service.markRead("../../etc/passwd");
+            expect(mockExecFile).toHaveBeenCalledWith(
+                "/path/to/ax-helper",
+                ["mark-read"],
+                expect.any(Object),
+                expect.any(Function)
+            );
+        });
+
+        it("does not mutate args array on repeated calls", async () => {
+            const mockExecFile = execFile as unknown as ReturnType<typeof vi.fn>;
+            mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: any, cb: Function) => {
+                cb(null, '{"ok":true,"op":"mark-read","ms":1}', "");
+            });
+
+            await service.markRead("t1");
+            await service.markRead("t2");
+
+            const calls = mockExecFile.mock.calls;
+            expect(calls[0][1]).toEqual(["mark-read", "--trace-id", "t1"]);
+            expect(calls[1][1]).toEqual(["mark-read", "--trace-id", "t2"]);
         });
     });
 });

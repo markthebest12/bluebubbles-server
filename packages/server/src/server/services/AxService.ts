@@ -16,6 +16,7 @@ export interface AxResult {
 const VALID_TAPBACK_TYPES = ["heart", "thumbsup", "thumbsdown", "haha", "emphasis", "question"];
 const VALID_DIRECTIONS = ["next", "prev"];
 const TIMEOUT_MS = 5000;
+const TRACE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 
 export class AxService extends Loggable {
     tag = "AxService";
@@ -52,51 +53,52 @@ export class AxService extends Loggable {
     }
 
     private async run(args: string[], traceId?: string): Promise<AxResult> {
-        if (traceId) {
-            args.push("--trace-id", traceId);
+        const fullArgs = [...args];
+        if (traceId && TRACE_ID_PATTERN.test(traceId)) {
+            fullArgs.push("--trace-id", traceId);
         }
 
         await this.queue.acquire();
         try {
-            return await this.exec(args);
+            return await this.exec(fullArgs);
         } finally {
             this.queue.release();
         }
     }
 
     private exec(args: string[]): Promise<AxResult> {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             execFile(this.binaryPath, args, { timeout: TIMEOUT_MS }, (error, stdout, stderr) => {
                 if (stderr) {
-                    this.log.warn(`ax-helper stderr: ${stderr.trim()}`);
+                    const level = error ? "warn" : "debug";
+                    this.log[level](`ax-helper stderr: ${stderr.trim()}`);
                 }
 
                 // Try to parse stdout as JSON regardless of exit code
                 if (stdout && stdout.trim().length > 0) {
                     try {
                         const result = JSON.parse(stdout) as AxResult;
+                        if (!result.ok) {
+                            reject(new Error(result.error ?? "ax-helper operation failed"));
+                            return;
+                        }
                         resolve(result);
                         return;
                     } catch {
-                        // stdout not valid JSON — fall through to error handling
+                        this.log.warn(`ax-helper stdout not valid JSON: ${stdout.substring(0, 200)}`);
                     }
                 }
 
                 if (error) {
-                    const isTimeout = (error as any).killed === true;
-                    resolve({
-                        ok: false,
-                        op: args[0] || "unknown",
-                        error: isTimeout ? "timeout" : `exec_error: ${error.message}`
-                    });
+                    const isTimeout =
+                        (error as any).killed === true ||
+                        (error as any).code === "ETIMEDOUT" ||
+                        (error as any).signal === "SIGTERM";
+                    reject(new Error(isTimeout ? "timeout" : "ax-helper execution failed"));
                     return;
                 }
 
-                resolve({
-                    ok: false,
-                    op: args[0] || "unknown",
-                    error: "no_output"
-                });
+                reject(new Error("ax-helper returned no output"));
             });
         });
     }
