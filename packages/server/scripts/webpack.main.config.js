@@ -32,13 +32,6 @@ module.exports = merge(baseConfig, {
                         "@babel/preset-typescript"
                     ],
                     plugins: [
-                        // Must be BEFORE decorators — emits Reflect.metadata calls
-                        // that TypeORM needs for runtime entity type resolution.
-                        // Without this, @Column() decorators lack type info and
-                        // TypeORM throws "No metadata for Chat" at runtime.
-                        // Terser's mangle/collapse/reduce_vars must be disabled
-                        // in prod config to prevent TDZ errors from metadata refs.
-                        "babel-plugin-transform-typescript-metadata",
                         ["@babel/plugin-proposal-decorators", { legacy: true }],
                         [
                             "@babel/plugin-transform-class-properties",
