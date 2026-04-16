@@ -72,6 +72,7 @@ import { obfuscatedHandle } from "./utils/StringUtils";
 import { AutoStartMethods } from "./databases/server/constants";
 import { MacOsInterface } from "./api/interfaces/macosInterface";
 import { ZrokManager } from "./managers/zrokManager";
+import { AxService } from "./services/AxService";
 
 const findProcess = require("find-process");
 
@@ -152,6 +153,8 @@ class BlueBubblesServer extends EventEmitter {
 
     actionHandler: ActionHandler;
 
+    axService: AxService;
+
     eventCache: EventCache;
 
     findMyCache: FindMyFriendsCache;
@@ -223,6 +226,7 @@ class BlueBubblesServer extends EventEmitter {
         // Other helpers
         this.eventCache = null;
         this.actionHandler = null;
+        this.axService = null;
 
         // Services
         this.httpService = null;
@@ -505,6 +509,14 @@ class BlueBubblesServer extends EventEmitter {
             this.scheduledMessages = new ScheduledMessagesService();
         } catch (ex: any) {
             this.logger.error(`Failed to start Scheduled Message service! ${ex?.message ?? String(ex)}}`);
+        }
+
+        try {
+            this.logger.info("Initializing Accessibility (ax-helper) Service...");
+            const axHelperPath = path.join(FileSystem.resources, "ax-helper", "ax-helper");
+            this.axService = new AxService(axHelperPath);
+        } catch (ex: any) {
+            this.logger.error(`Failed to initialize AxService! ${ex?.message ?? String(ex)}}`);
         }
     }
 
