@@ -5,15 +5,17 @@ vi.mock("child_process", () => ({
     execFile: vi.fn()
 }));
 
-// Mock @server to avoid Electron dependency chain
+// Mock @server to avoid Electron dependency chain (use alias and source paths)
 vi.mock("@server", () => ({
     Server: () => ({
         log: vi.fn()
     })
 }));
 
-// Mock the Loggable base class
-vi.mock("@server/lib/logging/Loggable", () => ({
+// Mock Loggable to break circular dep chain.
+// Use source-relative path because AxService.ts uses relative imports,
+// and Vitest resolves vi.mock keys relative to the test file.
+vi.mock("../../lib/logging/Loggable", () => ({
     Loggable: class {
         log = {
             debug: vi.fn(),
@@ -21,7 +23,14 @@ vi.mock("@server/lib/logging/Loggable", () => ({
             warn: vi.fn(),
             error: vi.fn()
         };
-    }
+    },
+    getLogger: () => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        on: vi.fn()
+    })
 }));
 
 import { execFile } from "child_process";

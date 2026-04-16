@@ -8,6 +8,7 @@ module.exports = {
         "dist",
         "scripts/**/*",
         "node_modules",
+        "test/**/*",
         "**/__tests__/**",
         "**/*.test.ts"
     ],

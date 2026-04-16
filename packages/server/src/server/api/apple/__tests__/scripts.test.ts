@@ -35,11 +35,11 @@ vi.mock("electron-log", () => ({
     transports: { file: { getFile: () => ({ path: "/tmp/fake.log" }) } }
 }));
 
-vi.mock("@server/fileSystem", () => ({
+vi.mock("../../../fileSystem", () => ({
     FileSystem: { baseDir: "/tmp", contactsDir: "/tmp" }
 }));
 
-vi.mock("@server/env", () => ({
+vi.mock("../../../env", () => ({
     isMinBigSur: true,
     isMinVentura: true,
     isMinMonterey: true,
@@ -52,13 +52,9 @@ vi.mock("@server/env", () => ({
 }));
 
 // Mock @server/helpers/utils — matches real impl signatures
-vi.mock("@server/helpers/utils", () => ({
+vi.mock("../../../helpers/utils", () => ({
     escapeOsaExp: (input: string) => {
-        return input
-            .replace(/\\/g, "\\\\\\\\")
-            .replace(/"/g, '\\\\"')
-            .replace(/\$/g, "\\$")
-            .replace(/`/g, "\\`");
+        return input.replace(/\\/g, "\\\\\\\\").replace(/"/g, '\\\\"').replace(/\$/g, "\\$").replace(/`/g, "\\`");
     },
     getiMessageAddressFormat: (address: string) => {
         // Simplified: returns address as-is. Real impl does phone formatting.
@@ -136,10 +132,12 @@ describe("mapServiceType", () => {
 // ============================================================
 
 describe("sendMessage with Tahoe GUIDs", () => {
-    it("maps 'any;-;+11234567890' to 'iMessage;-;+11234567890' in script", () => {
+    // sendMessage preserves the service prefix in chat IDs because Messages.app
+    // on Tahoe only recognizes "any;-;" GUIDs, not "iMessage;-;".
+    // mapServiceType is only used for the `service type` AppleScript parameter.
+    it("preserves 'any' service prefix in chat GUID (Tahoe compatibility)", () => {
         const script = sendMessage("any;-;+11234567890", "Hello", "");
-        expect(script).toContain('chat id "iMessage;-;+11234567890"');
-        expect(script).not.toContain("any;-;");
+        expect(script).toContain('chat id "any;-;+11234567890"');
     });
 
     it("preserves 'iMessage;-;+11234567890'", () => {
@@ -153,10 +151,9 @@ describe("sendMessage with Tahoe GUIDs", () => {
         expect(script).not.toContain("iMessage;-;");
     });
 
-    it("maps 'any' in group chat GUIDs (any;+;chatXXX)", () => {
+    it("preserves 'any' in group chat GUIDs (any;+;chatXXX)", () => {
         const script = sendMessage("any;+;chat123456789", "Hello", "");
-        expect(script).toContain('chat id "iMessage;+;chat123456789"');
-        expect(script).not.toContain("any;+;");
+        expect(script).toContain('chat id "any;+;chat123456789"');
     });
 
     it("preserves group chat GUID with iMessage service", () => {
