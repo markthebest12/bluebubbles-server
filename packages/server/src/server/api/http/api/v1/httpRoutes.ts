@@ -41,6 +41,8 @@ import { getLogger } from "@server/lib/logging/Loggable";
 import { WebhookRouter } from "./routers/webhookRouter";
 import { WebhookValidator } from "./validators/webhookValidator";
 import { ContactValidator } from "./validators/contactValidator";
+import { AxRouter } from "./routers/axRouter";
+import { AxValidator } from "./validators/axValidator";
 
 export class HttpRoutes {
     static version = 1;
@@ -727,6 +729,35 @@ export class HttpRoutes {
                         method: HttpMethod.DELETE,
                         path: ":id",
                         controller: WebhookRouter.delete
+                    }
+                ]
+            },
+            {
+                name: "Accessibility",
+                middleware: HttpRoutes.protected,
+                prefix: "ax",
+                routes: [
+                    {
+                        method: HttpMethod.POST,
+                        path: "tapback",
+                        validators: [AxValidator.validateTapback],
+                        controller: AxRouter.tapback
+                    },
+                    {
+                        method: HttpMethod.POST,
+                        path: "mark-read",
+                        controller: AxRouter.markRead
+                    },
+                    {
+                        method: HttpMethod.POST,
+                        path: "navigate",
+                        validators: [AxValidator.validateNavigate],
+                        controller: AxRouter.navigate
+                    },
+                    {
+                        method: HttpMethod.GET,
+                        path: "check",
+                        controller: AxRouter.check
                     }
                 ]
             }
