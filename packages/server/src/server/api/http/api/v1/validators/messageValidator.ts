@@ -268,15 +268,13 @@ export class MessageValidator {
 
     static async validateAttachmentChunk(ctx: RouterContext, next: Next) {
         const { files } = ctx.request;
-        const { chunkIndex, totalChunks, method, isAudioMessage, effectId, subject, selectedMessageGuid } =
-            ValidateInput(ctx.request?.body, MessageValidator.attachmentChunkRules);
+        const validated = ValidateInput(ctx.request?.body, MessageValidator.attachmentChunkRules);
+        const { method, effectId, subject, selectedMessageGuid } = validated;
 
         // Convert the string values (form data) to their appropriate types.
-        // Do it for both the request body and the parsed values. This is so whatever is
-        // after this middleware can use the parsed values directly.
-        chunkIndex = parseInt(chunkIndex, 10);
-        totalChunks = parseInt(totalChunks, 10);
-        isAudioMessage = isTruthyBool(isAudioMessage) ? true : false;
+        const chunkIndex = parseInt(validated.chunkIndex, 10);
+        const totalChunks = parseInt(validated.totalChunks, 10);
+        const isAudioMessage = isTruthyBool(validated.isAudioMessage) ? true : false;
 
         let saniMethod = method ?? "apple-script";
         if (effectId || subject || selectedMessageGuid || ctx.request.body.attributedBody) {

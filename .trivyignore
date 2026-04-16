@@ -1,5 +1,9 @@
 # Electron 25.9.8 — pinned for compatibility, major version bump requires extensive testing
 # Tracking: https://github.com/electron/electron/releases
+CVE-2026-34769
+CVE-2026-34770
+CVE-2026-34771
+CVE-2026-34774
 GHSA-6r2x-8pq8-9489
 GHSA-vmqv-hx8q-j7mg
 GHSA-5rqw-r77c-jp79
@@ -20,6 +24,7 @@ GHSA-f37v-82c4-4x64
 GHSA-f3pv-wv63-48x8
 
 # electron-updater — requires electron-updater@6.x breaking change
+CVE-2024-39698
 GHSA-9jxc-qjr9-vjxq
 
 # electron-builder chain (tar, @tootallnate/once, http-proxy-agent, builder-util)
