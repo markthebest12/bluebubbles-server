@@ -1,5 +1,6 @@
 import Foundation
 import ApplicationServices
+import CoreGraphics
 
 let args = CommandLine.arguments
 let startTime = DispatchTime.now()
@@ -80,17 +81,74 @@ case "tapback":
         exit(ExitCode.invalidArguments.rawValue)
     }
     let tapbackType = args[2]
-    let validTypes = ["heart", "thumbsup", "thumbsdown", "haha", "emphasis", "question"]
-    guard validTypes.contains(tapbackType) else {
-        writeError("Invalid tapback type: \(tapbackType). Valid: \(validTypes.joined(separator: ", "))")
+    // On macOS Tahoe, each message (AXGroup id='Sticker') exposes named AX
+    // actions for every reaction. Performing the action applies the tapback
+    // directly — no picker UI, no menu bar, no keyboard simulation.
+    let tapbackActionNames: [String: String] = [
+        "heart": "Heart",
+        "thumbsup": "Thumbs up",
+        "thumbsdown": "Thumbs down",
+        "haha": "Ha ha!",
+        "emphasis": "Exclamation mark",
+        "question": "Question mark"
+    ]
+    guard let actionName = tapbackActionNames[tapbackType] else {
+        writeError("Invalid tapback type: \(tapbackType). Valid: \(Array(tapbackActionNames.keys).sorted().joined(separator: ", "))")
         exit(ExitCode.invalidArguments.rawValue)
     }
     let messages = requireMessages()
-    let menuBar = requireMenuBar(messages)
-    pressMenuItemByName(menuBar, name: "tapback", op: "tapback")
-    // Note: tapback picker appears — the actual type selection requires
-    // further AX interaction with the picker UI. For now, pressing the
-    // menu item opens the picker. Type selection is a future enhancement.
+    let pid = messages.app.processIdentifier
+    let appRef = AXUIElementCreateApplication(pid)
+
+    func attr(_ e: AXUIElement, _ key: String) -> Any? {
+        var v: CFTypeRef?
+        return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? (v as Any?) : nil
+    }
+
+    // Find the most recent message in the conversation. AXGroup id='Sticker'
+    // is the stable identifier; the last match in tree order is the newest.
+    func findLastMessage(_ e: AXUIElement, depth: Int = 0, maxDepth: Int = 25) -> AXUIElement? {
+        guard depth <= maxDepth else { return nil }
+        var best: AXUIElement? = nil
+        let role = attr(e, kAXRoleAttribute) as? String ?? ""
+        let ident = attr(e, kAXIdentifierAttribute) as? String ?? ""
+        if role == "AXGroup" && ident == "Sticker" { best = e }
+        let kids = attr(e, kAXChildrenAttribute) as? [AXUIElement] ?? []
+        for k in kids {
+            if let found = findLastMessage(k, depth: depth + 1, maxDepth: maxDepth) { best = found }
+        }
+        return best
+    }
+
+    let windows = attr(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
+    var target: AXUIElement? = nil
+    for w in windows {
+        if let m = findLastMessage(w) { target = m }
+    }
+    guard let message = target else {
+        writeError("Could not find a message (AXGroup id='Sticker') in Messages.app window")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "no_message_found", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
+    // Verify the action is exposed on the target message
+    var actionsRef: CFArray?
+    AXUIElementCopyActionNames(message, &actionsRef)
+    let availableActions = (actionsRef as? [String]) ?? []
+    let hasAction = availableActions.contains { $0.contains(actionName) }
+    guard hasAction else {
+        writeError("Message does not expose action '\(actionName)'. Available: \(availableActions)")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "action_not_available", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
+    let result = AXUIElementPerformAction(message, actionName as CFString)
+    guard result == .success else {
+        writeError("AXPerformAction('\(actionName)') on message failed: \(result.rawValue)")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "ax_perform_failed_\(result.rawValue)", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
     writeJSON(OutputResult(ok: true, op: "tapback", type: tapbackType, ms: elapsed(), trace: traceId))
 
 case "mark-read":
