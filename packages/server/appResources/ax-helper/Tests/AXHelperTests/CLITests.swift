@@ -53,11 +53,18 @@ struct ArgumentParsingTests {
         #expect(result.stderr.contains("Usage:"))
     }
 
-    @Test("Tapback invalid type exits 3")
+    @Test("Tapback invalid type exits 3 and emits invalid_tapback_type JSON")
     func tapbackInvalidTypeExits3() throws {
         let result = try Self.runCLI(["tapback", "invalid"])
         #expect(result.exitCode == 3)
         #expect(result.stderr.contains("Invalid tapback type"))
+        // Stdout must carry the JSON error — callers parse stdout and need a
+        // structured payload even on argument-validation failures.
+        let data = result.stdout.data(using: .utf8)!
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["ok"] as? Bool == false)
+        #expect(json["op"] as? String == "tapback")
+        #expect(json["error"] as? String == "invalid_tapback_type")
     }
 
     @Test("Navigate missing direction exits 3")
