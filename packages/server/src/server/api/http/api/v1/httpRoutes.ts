@@ -539,6 +539,11 @@ export class HttpRoutes {
                         middleware: [...HttpRoutes.protected, PrivateApiMiddleware],
                         validators: [MessageValidator.validateGetEmbeddedMedia],
                         controller: MessageRouter.getEmbeddedMedia
+                    },
+                    {
+                        method: HttpMethod.GET,
+                        path: "audio-transcript/:guid",
+                        controller: MessageRouter.audioTranscript
                     }
                 ]
             },

@@ -9,14 +9,16 @@ import { Server } from "@server";
 import { FileSystem } from "@server/fileSystem";
 import { isEmpty, isNotEmpty, isTruthyBool } from "@server/helpers/utils";
 import { Message } from "@server/databases/imessage/entity/Message";
+import { Attachment } from "@server/databases/imessage/entity/Attachment";
 import { MessageInterface } from "@server/api/interfaces/messageInterface";
 import { MessagePromiseRejection } from "@server/managers/outgoingMessageManager/messagePromise";
 import { MessageSerializer } from "@server/api/serializers/MessageSerializer";
 import { arrayHasOne } from "@server/utils/CollectionUtils";
 import { FileStream, Success } from "../responses/success";
-import { BadRequest, IMessageError, NotFound } from "../responses/errors";
+import { BadRequest, IMessageError, NotFound, ServerError } from "../responses/errors";
 import { parseWithQuery } from "../utils";
 import { isMinVentura } from "@server/env";
+import { AudioTranscriptService, AudioTranscriptErrorCode } from "@server/services/audioTranscriptService";
 
 export class MessageRouter {
     static async sentCount(ctx: RouterContext, _: Next) {
@@ -857,5 +859,32 @@ export class MessageRouter {
                 }
             })
         }).send();
+    }
+
+    static async audioTranscript(ctx: RouterContext, _: Next) {
+        const { guid } = ctx.params;
+        const repo = Server().iMessageRepo.db.getRepository(Attachment);
+        const service = new AudioTranscriptService({
+            fetchRawUserInfo: async (g: string): Promise<Buffer | null> => {
+                const row = await repo
+                    .createQueryBuilder("a")
+                    .select("a.user_info", "user_info")
+                    .where("a.guid = :guid", { guid: g })
+                    .getRawOne<{ user_info: Buffer | null }>();
+                if (!row || row.user_info == null) return null;
+                return Buffer.isBuffer(row.user_info) ? row.user_info : Buffer.from(row.user_info);
+            }
+        });
+        const result = await service.getTranscript(guid);
+        if (result.ok === true) {
+            return new Success(ctx, { data: result }).send();
+        }
+        const failResult = result as { ok: false; guid?: string; error: AudioTranscriptErrorCode; uti?: string };
+        const errCode = failResult.error;
+        const msg = `audio-transcript ${errCode}`;
+        if (errCode === "invalid_guid") throw new BadRequest({ error: errCode, message: msg });
+        if (errCode === "not_found") throw new NotFound({ error: errCode, message: msg });
+        if (errCode === "no_transcription") throw new NotFound({ error: errCode, message: msg });
+        throw new ServerError({ error: errCode, message: msg });
     }
 }
