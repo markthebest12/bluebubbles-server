@@ -5,6 +5,11 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.14.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.14.0) - 2026-04-17
+
+- [`2baeece`](https://github.com/markthebest12/bluebubbles-server/commit/2baeeceb1903e9c4cc6e6b33b294b5adf0ca37eb) feat: expose on-device audio-message transcription via GET /api/v1/message/audio-transcript/:guid (#50)
+- [`2baeece`](https://github.com/markthebest12/bluebubbles-server/commit/2baeeceb1903e9c4cc6e6b33b294b5adf0ca37eb) feat: expose on-device audio-message transcription via GET /api/v1/message/audio-transcript/:guid (#50)
+
 ## [v1.13.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.13.0) - 2026-04-16
 
 - [`1c80fa1`](https://github.com/markthebest12/bluebubbles-server/commit/1c80fa1aaf1a95773ea008f90c2a79ddccf12b91) feat(ax-helper): apply tapback via named AX action on message (#48)
