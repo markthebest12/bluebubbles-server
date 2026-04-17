@@ -5,6 +5,12 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.13.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.13.0) - 2026-04-16
+
+- [`1c80fa1`](https://github.com/markthebest12/bluebubbles-server/commit/1c80fa1aaf1a95773ea008f90c2a79ddccf12b91) feat(ax-helper): apply tapback via named AX action on message (#48)
+- [`1c80fa1`](https://github.com/markthebest12/bluebubbles-server/commit/1c80fa1aaf1a95773ea008f90c2a79ddccf12b91) feat(ax-helper): apply tapback via named AX action on message (#48)
+- [`005e6ee`](https://github.com/markthebest12/bluebubbles-server/commit/005e6eed3a57f61a93e26f9bbd214f219b1d6a50) Revert "fix: restore babel TypeORM metadata plugin + terser TDZ safeguards (#45)" (#47)
+
 ## [v1.12.3](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.12.3) - 2026-04-16
 
 - [`8bbebfa`](https://github.com/markthebest12/bluebubbles-server/commit/8bbebfa096c52d149b5b920fb5ac2e64da0c15e1) fix(types): use ReturnType<typeof setInterval> for handle (#46)
