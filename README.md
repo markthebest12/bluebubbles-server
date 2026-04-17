@@ -56,7 +56,17 @@ Voice notes received in Messages.app are transcribed on-device by iOS/macOS (sin
 }
 ```
 
-**Error responses:** `400 invalid_guid`, `404 not_found`, `404 no_transcription` (attachment exists but lacks a transcript — e.g. older message or non-audio attachment), `500 invalid_plist`, `500 fetch_error`. Callers should inspect the `error` field in the response body to distinguish `not_found` from `no_transcription`.
+**Error response shape:**
+
+```json
+{
+  "status": 404,
+  "message": "audio-transcript no_transcription",
+  "error": { "type": "DATABASE_ERROR", "message": "no_transcription" }
+}
+```
+
+**Error codes:** `400 invalid_guid`, `404 not_found`, `404 no_transcription` (attachment exists but lacks a transcript — e.g. older message or non-audio attachment), `500 invalid_plist`, `500 fetch_error`. Callers should inspect the `error.message` field in the response body to distinguish `not_found` from `no_transcription`.
 
 ## Pre-requisites
 

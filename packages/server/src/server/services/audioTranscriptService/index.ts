@@ -2,6 +2,12 @@ import plist from "plist";
 import bplistParser from "bplist-parser";
 import { Loggable } from "@server/lib/logging/Loggable";
 
+// Tighten bplist-parser's default 100MB object size and 32768 object count — a
+// transcription plist is small (a handful of string + data keys). Preventing
+// large allocations is defense-in-depth against adversarial chat.db contents.
+(bplistParser as any).maxObjectSize = 1 * 1024 * 1024; // 1 MB
+(bplistParser as any).maxObjectCount = 256;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -34,6 +40,17 @@ const GUID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 /** Magic bytes that identify Apple's binary plist format. */
 const BPLIST_MAGIC = Buffer.from("bplist00");
+
+// Apple's on-device transcription engine produces short-to-medium speech-to-text strings.
+// 64 KB is generous for any realistic voice note; anomalous larger values are either corruption
+// or adversarial. Treat as no_transcription (the data is unusable) rather than success.
+const MAX_TRANSCRIPT_BYTES = 64 * 1024;
+
+/** Maximum byte length for metadata string fields (uti, filename). Fields exceeding this are dropped. */
+const MAX_METADATA_BYTES = 512;
+
+/** Maximum byte length for an XML plist before we refuse to parse it. */
+const MAX_XML_PLIST_BYTES = 1 * 1024 * 1024; // 1 MB
 
 // ---------------------------------------------------------------------------
 // Service
@@ -69,7 +86,8 @@ export class AudioTranscriptService extends Loggable {
         try {
             rawBuffer = await this.fetchRawUserInfo(guid);
         } catch (err) {
-            this.log.error(`fetchRawUserInfo threw for guid=${guid}: ${err}`);
+            const errMsg = err instanceof Error ? err.message : String(err);
+            this.log.error(`fetchRawUserInfo threw for guid=${guid}: ${errMsg}`);
             return { ok: false, guid, error: "fetch_error" };
         }
 
@@ -90,11 +108,15 @@ export class AudioTranscriptService extends Loggable {
             return { ok: false, guid, error: "invalid_plist" };
         }
 
-        const dict = decoded as Record<string, unknown>;
+        // Prototype-safe dict: strips the prototype to prevent a future refactor from
+        // accidentally reading inherited properties via dynamic key access.
+        const dict = Object.assign(Object.create(null) as Record<string, unknown>, decoded as Record<string, unknown>);
 
-        // 5. Extract optional uti for error responses.
-        const utiValue =
+        // 5. Extract optional uti for error responses — clamped to MAX_METADATA_BYTES.
+        const rawUti =
             typeof dict["uti-type"] === "string" && dict["uti-type"] !== "" ? (dict["uti-type"] as string) : undefined;
+        const utiValue =
+            rawUti !== undefined && Buffer.byteLength(rawUti, "utf8") <= MAX_METADATA_BYTES ? rawUti : undefined;
 
         // 6. Check for transcript.
         const transcriptValue = dict["audio-transcription"];
@@ -102,9 +124,18 @@ export class AudioTranscriptService extends Loggable {
             return { ok: false, guid, error: "no_transcription", ...(utiValue !== undefined ? { uti: utiValue } : {}) };
         }
 
-        // 7. Extract optional filename.
-        const filenameValue =
+        // Reject oversized transcripts — likely corruption or adversarial input.
+        if (Buffer.byteLength(transcriptValue, "utf8") > MAX_TRANSCRIPT_BYTES) {
+            return { ok: false, guid, error: "no_transcription", ...(utiValue !== undefined ? { uti: utiValue } : {}) };
+        }
+
+        // 7. Extract optional filename — clamped to MAX_METADATA_BYTES.
+        const rawFilename =
             typeof dict["name"] === "string" && dict["name"] !== "" ? (dict["name"] as string) : undefined;
+        const filenameValue =
+            rawFilename !== undefined && Buffer.byteLength(rawFilename, "utf8") <= MAX_METADATA_BYTES
+                ? rawFilename
+                : undefined;
 
         return {
             ok: true,
@@ -129,12 +160,17 @@ export class AudioTranscriptService extends Loggable {
             buffer.toString("latin1", 0, BPLIST_MAGIC.length) === BPLIST_MAGIC.toString("latin1");
 
         if (isBinary) {
-            // bplist-parser.parseBuffer returns [rootObject]
-            const results = bplistParser.parseBuffer(buffer) as unknown[];
-            return results[0];
+            // bplist-parser.parseBuffer returns [rootObject]; destructuring makes the
+            // single-element assumption explicit and preserves the library's declared type.
+            const [parsed] = bplistParser.parseBuffer(buffer);
+            return parsed;
         }
 
-        // XML plist — plist.parse expects a string
+        // XML plist — plist.parse expects a string. Reject oversized buffers before parsing
+        // to prevent unbounded allocations from adversarial input.
+        if (buffer.length > MAX_XML_PLIST_BYTES) {
+            throw new Error("plist too large");
+        }
         return plist.parse(buffer.toString("utf8"));
     }
 }

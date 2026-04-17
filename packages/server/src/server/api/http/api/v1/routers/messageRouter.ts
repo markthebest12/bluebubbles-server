@@ -18,7 +18,7 @@ import { FileStream, Success } from "../responses/success";
 import { BadRequest, IMessageError, NotFound, ServerError } from "../responses/errors";
 import { parseWithQuery } from "../utils";
 import { isMinVentura } from "@server/env";
-import { AudioTranscriptService, AudioTranscriptErrorCode } from "@server/services/audioTranscriptService";
+import { AudioTranscriptService } from "@server/services/audioTranscriptService";
 
 export class MessageRouter {
     static async sentCount(ctx: RouterContext, _: Next) {
@@ -879,11 +879,13 @@ export class MessageRouter {
         if (result.ok === true) {
             return new Success(ctx, { data: result }).send();
         }
-        const failResult = result as { ok: false; guid?: string; error: AudioTranscriptErrorCode; uti?: string };
-        const errCode = failResult.error;
+        const errCode = result.error;
         const msg = `audio-transcript ${errCode}`;
         if (errCode === "invalid_guid") throw new BadRequest({ error: errCode, message: msg });
         if (errCode === "not_found") throw new NotFound({ error: errCode, message: msg });
+        // 422 (Unprocessable Entity) is semantically correct for "resource exists but lacks subresource",
+        // but the codebase's ValidStatuses closed union doesn't include 422. Map to 404 and let
+        // callers distinguish via the error.message field in the response body.
         if (errCode === "no_transcription") throw new NotFound({ error: errCode, message: msg });
         throw new ServerError({ error: errCode, message: msg });
     }

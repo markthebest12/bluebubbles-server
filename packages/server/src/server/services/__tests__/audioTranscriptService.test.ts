@@ -258,7 +258,62 @@ describe("AudioTranscriptService", () => {
     });
 
     // -----------------------------------------------------------------------
-    // 10. Binary plist (bplist00) path — primary production format
+    // 10. Zero-byte buffer
+    // -----------------------------------------------------------------------
+    describe("getTranscript — zero-byte buffer", () => {
+        it("returns invalid_plist for zero-byte buffer", async () => {
+            const fetcher = vi.fn().mockResolvedValue(Buffer.alloc(0));
+            const svc = new AudioTranscriptService({ fetchRawUserInfo: fetcher });
+            const result = await svc.getTranscript("at_0_EMPTY");
+            expect(result.ok).toBe(false);
+            if (!result.ok) expect(result.error).toBe("invalid_plist");
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 11. Oversized transcript
+    // -----------------------------------------------------------------------
+    describe("getTranscript — oversized transcript", () => {
+        it("returns no_transcription for a transcript exceeding 64 KB, preserving uti", async () => {
+            const buf = buildPlistBuffer({
+                "audio-transcription": "x".repeat(70000),
+                "uti-type": "com.apple.coreaudio-format"
+            });
+            fetcher = makeFetcher(buf);
+            const service = new AudioTranscriptService({ fetchRawUserInfo: fetcher });
+
+            const result = await service.getTranscript("guid-oversized-transcript");
+
+            expect(result.ok).toBe(false);
+            if (result.ok) throw new Error("narrowing");
+            expect(result.error).toBe("no_transcription");
+            expect(result.uti).toBe("com.apple.coreaudio-format");
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 12. Oversized uti
+    // -----------------------------------------------------------------------
+    describe("getTranscript — oversized uti field", () => {
+        it("drops uti when it exceeds 512 bytes", async () => {
+            const buf = buildPlistBuffer({
+                "audio-transcription": "Hello world",
+                "uti-type": "x".repeat(600)
+            });
+            fetcher = makeFetcher(buf);
+            const service = new AudioTranscriptService({ fetchRawUserInfo: fetcher });
+
+            const result = await service.getTranscript("guid-oversized-uti");
+
+            expect(result.ok).toBe(true);
+            if (!result.ok) throw new Error("narrowing");
+            expect("uti" in result).toBe(false);
+            expect(result.transcript).toBe("Hello world");
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 14. Binary plist (bplist00) path — primary production format
     // -----------------------------------------------------------------------
     describe("getTranscript — binary plist (bplist00) input", () => {
         it("returns ok:true decoding a real binary plist buffer", async () => {

@@ -543,6 +543,7 @@ export class HttpRoutes {
                     {
                         method: HttpMethod.GET,
                         path: "audio-transcript/:guid",
+                        middleware: [...HttpRoutes.protected],
                         controller: MessageRouter.audioTranscript
                     }
                 ]
