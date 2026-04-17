@@ -33,6 +33,31 @@ The Private API (DYLIB injection) is dead on macOS 26 due to Launch Constraints.
 
 **Limitations:** Typing indicators and read receipt delivery are not achievable on Tahoe. See `docs/research/2026-04-14-private-api-tahoe.md` for the full research findings.
 
+### Audio Message Transcripts
+
+Voice notes received in Messages.app are transcribed on-device by iOS/macOS (since Sonoma) and the resulting text is stored in `attachment.user_info`. This endpoint reads that transcript directly — no Whisper, no third-party STT, no network roundtrip beyond the DB query.
+
+**REST Endpoint:**
+
+- `GET /api/v1/message/audio-transcript/:guid` — Fetch Apple's on-device transcription for an audio-message attachment
+
+**Response (200):**
+
+```json
+{
+  "status": 200,
+  "data": {
+    "ok": true,
+    "guid": "at_0_ABC",
+    "transcript": "Hey, just checking in.",
+    "uti": "com.apple.coreaudio-format",
+    "filename": "Audio Message.caf"
+  }
+}
+```
+
+**Error responses:** `400 invalid_guid`, `404 not_found`, `404 no_transcription` (attachment exists but lacks a transcript — e.g. older message or non-audio attachment), `500 invalid_plist`, `500 fetch_error`. Callers should inspect the `error` field in the response body to distinguish `not_found` from `no_transcription`.
+
 ## Pre-requisites
 
 - Node.js 20+
