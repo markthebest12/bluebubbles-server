@@ -66,7 +66,7 @@ enum AXHelper {
 
     private static func getIdentifier(_ element: AXUIElement) -> String? {
         var value: AnyObject?
-        let err = AXUIElementCopyAttributeValue(element, "AXIdentifier" as CFString, &value)
+        let err = AXUIElementCopyAttributeValue(element, kAXIdentifierAttribute as CFString, &value)
         return err == .success ? (value as? String) : nil
     }
 
