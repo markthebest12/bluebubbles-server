@@ -6,7 +6,12 @@ import { Loggable } from "@server/lib/logging/Loggable";
 // Types
 // ---------------------------------------------------------------------------
 
-export type AudioTranscriptErrorCode = "invalid_guid" | "not_found" | "no_transcription" | "invalid_plist";
+export type AudioTranscriptErrorCode =
+    | "invalid_guid"
+    | "not_found"
+    | "fetch_error"
+    | "no_transcription"
+    | "invalid_plist";
 
 export type AudioTranscriptResult =
     | { ok: true; guid: string; transcript: string; uti?: string; filename?: string }
@@ -64,8 +69,8 @@ export class AudioTranscriptService extends Loggable {
         try {
             rawBuffer = await this.fetchRawUserInfo(guid);
         } catch (err) {
-            this.log.error(`[AudioTranscriptService] fetchRawUserInfo threw for guid=${guid}: ${err}`);
-            return { ok: false, guid, error: "not_found" };
+            this.log.error(`fetchRawUserInfo threw for guid=${guid}: ${err}`);
+            return { ok: false, guid, error: "fetch_error" };
         }
 
         if (rawBuffer === null) {
@@ -120,7 +125,8 @@ export class AudioTranscriptService extends Loggable {
      */
     private decodePlist(buffer: Buffer): unknown {
         const isBinary =
-            buffer.length >= BPLIST_MAGIC.length && buffer.slice(0, BPLIST_MAGIC.length).equals(BPLIST_MAGIC);
+            buffer.length >= BPLIST_MAGIC.length &&
+            buffer.toString("latin1", 0, BPLIST_MAGIC.length) === BPLIST_MAGIC.toString("latin1");
 
         if (isBinary) {
             // bplist-parser.parseBuffer returns [rootObject]
