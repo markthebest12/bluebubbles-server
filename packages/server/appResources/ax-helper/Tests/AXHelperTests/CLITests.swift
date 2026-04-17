@@ -53,11 +53,18 @@ struct ArgumentParsingTests {
         #expect(result.stderr.contains("Usage:"))
     }
 
-    @Test("Tapback invalid type exits 3")
+    @Test("Tapback invalid type exits 3 and emits invalid_tapback_type JSON")
     func tapbackInvalidTypeExits3() throws {
         let result = try Self.runCLI(["tapback", "invalid"])
         #expect(result.exitCode == 3)
         #expect(result.stderr.contains("Invalid tapback type"))
+        // Stdout must carry the JSON error — callers parse stdout and need a
+        // structured payload even on argument-validation failures.
+        let data = result.stdout.data(using: .utf8)!
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["ok"] as? Bool == false)
+        #expect(json["op"] as? String == "tapback")
+        #expect(json["error"] as? String == "invalid_tapback_type")
     }
 
     @Test("Navigate missing direction exits 3")
@@ -77,8 +84,14 @@ struct ArgumentParsingTests {
 @Suite("JSON Output Format")
 struct JSONOutputTests {
 
-    @Test("Tapback with valid args produces valid JSON with op and trace")
-    func tapbackOutputIsValidJSON() throws {
+    // Contract/shape test only — asserts the JSON structure of tapback output
+    // regardless of whether the operation succeeded. In a test environment
+    // without Messages.app running, this falls through to the error path; both
+    // {ok:true,type:...} and {ok:false,error:...} shapes are accepted. A
+    // behavioral test requires mocking Messages.app's AX tree, which is out
+    // of scope here.
+    @Test("Tapback output JSON has the expected shape")
+    func tapbackOutputHasExpectedShape() throws {
         let result = try ArgumentParsingTests.runCLI(["tapback", "heart", "--trace-id", "test123"])
         // Exit code should NOT be 3 (invalid args) — it passed argument validation
         #expect(result.exitCode != 3)

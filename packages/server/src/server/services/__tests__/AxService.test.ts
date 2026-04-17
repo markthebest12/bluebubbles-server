@@ -152,10 +152,10 @@ describe("AxService", () => {
             mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: any, cb: Function) => {
                 const error: any = new Error("exit code 1");
                 error.code = 1;
-                cb(error, '{"ok":false,"op":"tapback","error":"menu_item_disabled"}', "Menu item disabled");
+                cb(error, '{"ok":false,"op":"tapback","error":"action_not_available"}', "Action not available");
             });
 
-            await expect(service.tapback("heart", "t1")).rejects.toThrow("menu_item_disabled");
+            await expect(service.tapback("heart", "t1")).rejects.toThrow("action_not_available");
         });
 
         it("rejects on timeout", async () => {

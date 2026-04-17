@@ -4,6 +4,17 @@ import ApplicationServices
 let args = CommandLine.arguments
 let startTime = DispatchTime.now()
 
+// Named AX actions exposed on iMessage bubbles (AXGroup id='Sticker') for
+// every reaction type. Used by the tapback command.
+let tapbackActionNames: [String: String] = [
+    "heart": "Heart",
+    "thumbsup": "Thumbs up",
+    "thumbsdown": "Thumbs down",
+    "haha": "Ha ha!",
+    "emphasis": "Exclamation mark",
+    "question": "Question mark"
+]
+
 var traceId: String? = nil
 if let idx = args.firstIndex(of: "--trace-id"), idx + 1 < args.count {
     traceId = args[idx + 1]
@@ -80,17 +91,81 @@ case "tapback":
         exit(ExitCode.invalidArguments.rawValue)
     }
     let tapbackType = args[2]
-    let validTypes = ["heart", "thumbsup", "thumbsdown", "haha", "emphasis", "question"]
-    guard validTypes.contains(tapbackType) else {
-        writeError("Invalid tapback type: \(tapbackType). Valid: \(validTypes.joined(separator: ", "))")
+    // On macOS Tahoe, each message (AXGroup id='Sticker') exposes named AX
+    // actions for every reaction. Performing the action applies the tapback
+    // directly — no picker UI, no menu bar, no keyboard simulation.
+    guard let actionName = tapbackActionNames[tapbackType] else {
+        writeError("Invalid tapback type: \(tapbackType). Valid: \(Array(tapbackActionNames.keys).sorted().joined(separator: ", "))")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "invalid_tapback_type", ms: elapsed(), trace: traceId))
         exit(ExitCode.invalidArguments.rawValue)
     }
     let messages = requireMessages()
-    let menuBar = requireMenuBar(messages)
-    pressMenuItemByName(menuBar, name: "tapback", op: "tapback")
-    // Note: tapback picker appears — the actual type selection requires
-    // further AX interaction with the picker UI. For now, pressing the
-    // menu item opens the picker. Type selection is a future enhancement.
+    let appRef = messages.element
+
+    func attr(_ e: AXUIElement, _ key: String) -> Any? {
+        var v: CFTypeRef?
+        return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? (v as Any?) : nil
+    }
+
+    // Find the most recent message in the conversation. AXGroup id='Sticker'
+    // is the stable identifier; the last match in tree order is the newest.
+    // Depth limit prevents runaway recursion on pathological AX trees; the
+    // Messages.app tree depth from window root to message bubble is well
+    // within this bound on Tahoe.
+    func findLastMessage(_ e: AXUIElement, depth: Int = 0, maxDepth: Int = 25) -> AXUIElement? {
+        guard depth < maxDepth else { return nil }
+        var best: AXUIElement?
+        let role = attr(e, kAXRoleAttribute) as? String ?? ""
+        let ident = attr(e, kAXIdentifierAttribute) as? String ?? ""
+        if role == "AXGroup" && ident == "Sticker" { best = e }
+        let kids = attr(e, kAXChildrenAttribute) as? [AXUIElement] ?? []
+        for k in kids {
+            if let found = findLastMessage(k, depth: depth + 1, maxDepth: maxDepth) { best = found }
+        }
+        return best
+    }
+
+    // Prefer the focused window; fall back to iterating all windows if focus
+    // is not resolvable. Multi-window setups (detached chat windows) can
+    // otherwise tapback the wrong conversation.
+    var target: AXUIElement?
+    if let focusedAny = attr(appRef, kAXFocusedWindowAttribute) {
+        target = findLastMessage(focusedAny as! AXUIElement)
+    }
+    if target == nil {
+        let windows = attr(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
+        for w in windows {
+            if let m = findLastMessage(w) { target = m }
+        }
+    }
+    guard let message = target else {
+        writeError("Could not find a message (AXGroup id='Sticker') in Messages.app window")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "no_message_found", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
+    // Verify the action is exposed on the target message
+    var actionsRef: CFArray?
+    let actionsErr = AXUIElementCopyActionNames(message, &actionsRef)
+    guard actionsErr == .success else {
+        writeError("AXUIElementCopyActionNames failed: \(actionsErr.rawValue)")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "ax_copy_actions_failed_\(actionsErr.rawValue)", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+    let availableActions = (actionsRef as? [String]) ?? []
+    guard availableActions.contains(actionName) else {
+        writeError("Message does not expose action '\(actionName)'. Available: \(availableActions)")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "action_not_available", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
+    let result = AXUIElementPerformAction(message, actionName as CFString)
+    guard result == .success else {
+        writeError("AXPerformAction('\(actionName)') on message failed: \(result.rawValue)")
+        writeJSON(OutputResult(ok: false, op: "tapback", error: "ax_perform_failed_\(result.rawValue)", ms: elapsed(), trace: traceId))
+        exit(ExitCode.operationFailed.rawValue)
+    }
+
     writeJSON(OutputResult(ok: true, op: "tapback", type: tapbackType, ms: elapsed(), trace: traceId))
 
 case "mark-read":
