@@ -20,7 +20,7 @@ Fork of [BlueBubblesApp/bluebubbles-server](https://github.com/BlueBubblesApp/bl
 
 ### ax-helper (Tahoe Private API Alternative)
 
-The Private API (DYLIB injection) is dead on macOS 26 due to Launch Constraints. `ax-helper` is a Swift CLI binary that uses Accessibility API menu item invocation as an alternative.
+The Private API (DYLIB injection) is dead on macOS 26 due to Launch Constraints. `ax-helper` is a Swift CLI binary that uses the Accessibility API as an alternative — named AX actions on message elements for tapbacks, menu item invocation for mark-as-read and conversation navigation.
 
 **REST Endpoints:**
 
