@@ -123,11 +123,26 @@ chmod -R a+rX "$APP_DEST"
 echo "Deployed $APP_DEST"
 echo ""
 
+cd "$REPO"
+DEPLOYED_VERSION="$(node -p "require('./package.json').version")"
+DEPLOYED_SHA="$(git rev-parse HEAD)"
+
 echo "=== Deploy Complete ==="
-echo "Version: $(node -p "require('./package.json').version")"
-echo "Commit:  $(git rev-parse --short HEAD)"
+echo "Version: $DEPLOYED_VERSION"
+echo "Commit:  ${DEPLOYED_SHA:0:7}"
 echo "Backup:  $BACKUP_FILE"
 echo ""
+
+# --- Step 7: Slack notification (non-fatal on failure) ---
+echo "--- Step 7: Notify Slack ---"
+if SHA="$DEPLOYED_SHA" BB_VERSION="$DEPLOYED_VERSION" \
+    bash "$REPO/scripts/notify-deploy.sh"; then
+    echo "Notification posted."
+else
+    echo "Notification failed — see output above. Deploy itself is complete."
+fi
+echo ""
+
 echo "NEXT STEPS:"
 echo "  1. Start BlueBubbles for gaston (login as gaston, open BlueBubbles)"
 echo "  2. Start BlueBubbles for colette (login as colette, open BlueBubbles)"
