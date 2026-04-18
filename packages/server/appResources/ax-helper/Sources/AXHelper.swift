@@ -50,7 +50,7 @@ enum AXHelper {
     /// etc.). The erased return type matches the heterogeneity of AX attributes —
     /// a single element may expose strings, numbers, arrays, and references.
     static func attribute(_ element: AXUIElement, _ key: String) -> Any? {
-        var value: CFTypeRef?
+        var value: AnyObject?
         return AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success
             ? (value as Any?)
             : nil
