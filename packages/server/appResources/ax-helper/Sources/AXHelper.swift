@@ -68,6 +68,10 @@ enum AXHelper {
     /// `maxDepth` prevents runaway recursion on pathological trees. 25 is a safe
     /// default for Messages.app's window-to-bubble depth; callers with shallower
     /// trees can pass a smaller bound.
+    ///
+    /// - Parameter maxDepth: Maximum number of edges from `element` to any visited node.
+    ///   `element` itself is at depth 0. `maxDepth: 25` visits up to 25 edges below
+    ///   the root, which is safe for Messages.app's window-to-bubble depth.
     static func findLastDescendant(
         _ element: AXUIElement,
         matching: (AXUIElement) -> Bool,
@@ -79,6 +83,9 @@ enum AXHelper {
     /// Messages.app-specific: find the last `AXGroup` with identifier `"Sticker"`
     /// in the subtree. This is the stable identifier for an iMessage bubble on
     /// Tahoe and later; the last match in tree order is the newest message.
+    ///
+    /// - Parameter maxDepth: See `findLastDescendant(_:matching:maxDepth:)`.
+    ///   Default 25 suits Messages.app's typical tree depth.
     static func findLastStickerGroup(in element: AXUIElement, maxDepth: Int = 25) -> AXUIElement? {
         return findLastDescendant(element, matching: { candidate in
             let role = attribute(candidate, kAXRoleAttribute) as? String ?? ""
