@@ -5,6 +5,10 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.15.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.15.0) - 2026-04-18
+
+- [`5d0208e`](https://github.com/markthebest12/bluebubbles-server/commit/5d0208ee8a78bb6e01c7905f64d6d0ce77c91571) feat: slack deploy notification matching openclaw-infra pipeline (#51)
+
 ## [v1.14.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.14.0) - 2026-04-17
 
 - [`2baeece`](https://github.com/markthebest12/bluebubbles-server/commit/2baeeceb1903e9c4cc6e6b33b294b5adf0ca37eb) feat: expose on-device audio-message transcription via GET /api/v1/message/audio-transcript/:guid (#50)
