@@ -15,7 +15,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
-        "dist": "npm run build && electron-builder build --mac --publish never --config ./scripts/electron-builder-config.js",
+        "dist": "(cd ../.. && npm run build-ui) && npm run build && electron-builder build --mac --publish never --config ./scripts/electron-builder-config.js",
         "release": "npm run build && electron-builder build --mac --publish always --config ./scripts/electron-builder-config.js",
         "rebuild": "electron-rebuild -f better-sqlite3 node-mac-contacts node-mac-permissions",
         "postinstall": "electron-rebuild install-app-deps && npm run rebuild"
