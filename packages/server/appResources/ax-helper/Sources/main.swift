@@ -121,8 +121,14 @@ case "tapback":
     }
     if target == nil {
         let windows = AXHelper.attribute(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
+        // Stop at the first window that yields a match. Continuing would
+        // overwrite `target` with a newer message from a different window,
+        // losing the focused-window bias we intend to approximate here.
         for w in windows {
-            if let m = AXHelper.findLastStickerGroup(in: w) { target = m }
+            if let m = AXHelper.findLastStickerGroup(in: w) {
+                target = m
+                break
+            }
         }
     }
     guard let message = target else {
