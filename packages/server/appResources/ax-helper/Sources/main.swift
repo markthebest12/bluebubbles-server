@@ -109,7 +109,15 @@ case "tapback":
     // check delivery state) can reuse them.
     var target: AXUIElement?
     if let focusedAny = AXHelper.attribute(appRef, kAXFocusedWindowAttribute) {
-        target = AXHelper.findLastStickerGroup(in: focusedAny as! AXUIElement)
+        // AX is permitted to return any CF type here. A non-element would crash
+        // the process on force-cast. Swift's `as?` always succeeds on CF types
+        // (compile-time warning), so compare CFTypeIDs explicitly and fall
+        // through to the windows fallback if the type is wrong.
+        if CFGetTypeID(focusedAny as CFTypeRef) == AXUIElementGetTypeID() {
+            target = AXHelper.findLastStickerGroup(in: focusedAny as! AXUIElement)
+        } else {
+            writeError("kAXFocusedWindowAttribute returned non-AXUIElement type; falling back to window iteration")
+        }
     }
     if target == nil {
         let windows = AXHelper.attribute(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
