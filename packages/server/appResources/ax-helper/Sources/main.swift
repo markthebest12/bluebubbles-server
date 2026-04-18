@@ -102,40 +102,19 @@ case "tapback":
     let messages = requireMessages()
     let appRef = messages.element
 
-    func attr(_ e: AXUIElement, _ key: String) -> Any? {
-        var v: CFTypeRef?
-        return AXUIElementCopyAttributeValue(e, key as CFString, &v) == .success ? (v as Any?) : nil
-    }
-
-    // Find the most recent message in the conversation. AXGroup id='Sticker'
-    // is the stable identifier; the last match in tree order is the newest.
-    // Depth limit prevents runaway recursion on pathological AX trees; the
-    // Messages.app tree depth from window root to message bubble is well
-    // within this bound on Tahoe.
-    func findLastMessage(_ e: AXUIElement, depth: Int = 0, maxDepth: Int = 25) -> AXUIElement? {
-        guard depth < maxDepth else { return nil }
-        var best: AXUIElement?
-        let role = attr(e, kAXRoleAttribute) as? String ?? ""
-        let ident = attr(e, kAXIdentifierAttribute) as? String ?? ""
-        if role == "AXGroup" && ident == "Sticker" { best = e }
-        let kids = attr(e, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        for k in kids {
-            if let found = findLastMessage(k, depth: depth + 1, maxDepth: maxDepth) { best = found }
-        }
-        return best
-    }
-
     // Prefer the focused window; fall back to iterating all windows if focus
     // is not resolvable. Multi-window setups (detached chat windows) can
-    // otherwise tapback the wrong conversation.
+    // otherwise tapback the wrong conversation. Traversal helpers live in
+    // AXHelper so future AX-tree walkers (e.g. find conversation by name,
+    // check delivery state) can reuse them.
     var target: AXUIElement?
-    if let focusedAny = attr(appRef, kAXFocusedWindowAttribute) {
-        target = findLastMessage(focusedAny as! AXUIElement)
+    if let focusedAny = AXHelper.attribute(appRef, kAXFocusedWindowAttribute) {
+        target = AXHelper.findLastStickerGroup(in: focusedAny as! AXUIElement)
     }
     if target == nil {
-        let windows = attr(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
+        let windows = AXHelper.attribute(appRef, kAXWindowsAttribute) as? [AXUIElement] ?? []
         for w in windows {
-            if let m = findLastMessage(w) { target = m }
+            if let m = AXHelper.findLastStickerGroup(in: w) { target = m }
         }
     }
     guard let message = target else {
