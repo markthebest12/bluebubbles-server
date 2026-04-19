@@ -117,6 +117,10 @@ enum AXHelper {
     /// traversal order, depth bounds, predicate semantics, and `skipRoot` behavior
     /// without needing to construct AX tree fixtures.
     ///
+    /// **Internal: exposed module-wide for `@testable import ax_helper` only.**
+    /// Production code should use `findLastDescendant(_:matching:maxDepth:skipRoot:)`;
+    /// this helper is a testing surface, not a stable API.
+    ///
     /// Semantics:
     /// - Visits `root` first (if `skipRoot == false`), then children in order,
     ///   recursively. Later matches overwrite earlier ones, so the result is the
@@ -129,8 +133,8 @@ enum AXHelper {
         root: T,
         children: (T) -> [T],
         matches: (T) -> Bool,
-        maxDepth: Int,
-        skipRoot: Bool
+        maxDepth: Int = 25,
+        skipRoot: Bool = false
     ) -> T? {
         return walkLastRecursive(
             node: root,

@@ -223,8 +223,8 @@ struct FindLastDescendantTests {
         #expect(result == nil)
     }
 
-    @Test("skipRoot=true still walks children and returns descendant match")
-    func skipRootTrueStillWalksChildren() {
+    @Test("skipRoot=true still walks children and returns descendant match with shared id")
+    func skipRootTrueStillWalksChildrenSharedId() {
         // Root (id=100) would match but is skipped; descendant (id=100 also)
         // IS returned because skipRoot only applies to the entry-level root.
         let tree = TestNode(100, [
@@ -239,18 +239,21 @@ struct FindLastDescendantTests {
             skipRoot: true
         )
         #expect(result?.id == 100)
-        // To be sure this isn't the root being returned by accident, use
-        // identity on the nested node: rebuild with distinct markers.
-        let sentinel = TestNode(999)
-        let tree2 = TestNode(100, [TestNode(2), TestNode(3, [sentinel])])
-        let result2 = AXHelper.walkLast(
-            root: tree2,
+    }
+
+    @Test("skipRoot=true returns distinct descendant, not the root, when both could match")
+    func skipRootTrueReturnsDescendantNotRoot() {
+        // Uses distinct ids to prove the returned node is actually the nested
+        // one rather than the root being returned by accident.
+        let tree = TestNode(100, [TestNode(2), TestNode(3, [TestNode(999)])])
+        let result = AXHelper.walkLast(
+            root: tree,
             children: kids,
             matches: { $0.id == 999 || $0.id == 100 },
             maxDepth: 10,
             skipRoot: true
         )
-        #expect(result2?.id == 999)
+        #expect(result?.id == 999)
     }
 
     @Test("skipRoot does not cascade into descendant recursion")
@@ -286,7 +289,7 @@ struct FindLastDescendantTests {
     }
 
     @Test("Predicate evaluated exactly once per visited node (children)")
-    func predicateCalledOncePerVisitedNode() {
+    func predicateCalledExactlyOncePerNode() {
         // Track how many times the predicate is invoked to guard against a
         // regression that double-evaluates (e.g. root check then children
         // check).
