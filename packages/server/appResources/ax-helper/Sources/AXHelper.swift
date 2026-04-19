@@ -72,41 +72,103 @@ enum AXHelper {
     /// - Parameter maxDepth: Maximum number of edges from `element` to any visited node.
     ///   `element` itself is at depth 0. `maxDepth: 25` visits up to 25 edges below
     ///   the root, which is safe for Messages.app's window-to-bubble depth.
+    /// - Parameter skipRoot: When true, `matching` is not evaluated on `element` itself —
+    ///   only on its descendants. Callers that know the root is a container (window, app,
+    ///   menu bar) that cannot possibly match their predicate should pass `true` to avoid
+    ///   one wasted predicate evaluation and any attribute fetches it triggers. Defaults
+    ///   to `false` to preserve the original semantics (root-inclusive).
     static func findLastDescendant(
         _ element: AXUIElement,
         matching: (AXUIElement) -> Bool,
-        maxDepth: Int = 25
+        maxDepth: Int = 25,
+        skipRoot: Bool = false
     ) -> AXUIElement? {
-        return findLastDescendant(element, matching: matching, depth: 0, maxDepth: maxDepth)
+        return walkLast(
+            root: element,
+            children: { attribute($0, kAXChildrenAttribute) as? [AXUIElement] ?? [] },
+            matches: matching,
+            maxDepth: maxDepth,
+            skipRoot: skipRoot
+        )
     }
 
     /// Messages.app-specific: find the last `AXGroup` with identifier `"Sticker"`
     /// in the subtree. This is the stable identifier for an iMessage bubble on
     /// Tahoe and later; the last match in tree order is the newest message.
     ///
-    /// - Parameter maxDepth: See `findLastDescendant(_:matching:maxDepth:)`.
+    /// - Parameter maxDepth: See `findLastDescendant(_:matching:maxDepth:skipRoot:)`.
     ///   Default 25 suits Messages.app's typical tree depth.
-    static func findLastStickerGroup(in element: AXUIElement, maxDepth: Int = 25) -> AXUIElement? {
+    /// - Parameter skipRoot: Forwarded to `findLastDescendant`. Typical callers pass the
+    ///   focused window or an app element as `element`, neither of which can match the
+    ///   Sticker predicate — passing `true` skips one predicate evaluation per call.
+    static func findLastStickerGroup(in element: AXUIElement, maxDepth: Int = 25, skipRoot: Bool = false) -> AXUIElement? {
         return findLastDescendant(element, matching: { candidate in
             let role = attribute(candidate, kAXRoleAttribute) as? String ?? ""
             let ident = attribute(candidate, kAXIdentifierAttribute) as? String ?? ""
             return role == "AXGroup" && ident == "Sticker"
-        }, maxDepth: maxDepth)
+        }, maxDepth: maxDepth, skipRoot: skipRoot)
+    }
+
+    // MARK: - Pure traversal helper (testable)
+
+    /// Pure, generic version of `findLastDescendant` with the AX dependency factored
+    /// out via a `children` closure. The AXUIElement-facing API delegates here; tests
+    /// exercise this directly with plain Swift values (e.g. a struct tree) to verify
+    /// traversal order, depth bounds, predicate semantics, and `skipRoot` behavior
+    /// without needing to construct AX tree fixtures.
+    ///
+    /// **Internal: exposed module-wide for `@testable import ax_helper` only.**
+    /// Production code should use `findLastDescendant(_:matching:maxDepth:skipRoot:)`;
+    /// this helper is a testing surface, not a stable API.
+    ///
+    /// Semantics:
+    /// - Visits `root` first (if `skipRoot == false`), then children in order,
+    ///   recursively. Later matches overwrite earlier ones, so the result is the
+    ///   last match in DFS tree order.
+    /// - `maxDepth` is the maximum number of edges from `root`. `root` itself is at
+    ///   depth 0; children are at depth 1; etc. Nodes at or beyond `maxDepth` edges
+    ///   are not visited.
+    /// - Returns `nil` if no visited node matches.
+    static func walkLast<T>(
+        root: T,
+        children: (T) -> [T],
+        matches: (T) -> Bool,
+        maxDepth: Int = 25,
+        skipRoot: Bool = false
+    ) -> T? {
+        return walkLastRecursive(
+            node: root,
+            children: children,
+            matches: matches,
+            depth: 0,
+            maxDepth: maxDepth,
+            skipRoot: skipRoot
+        )
     }
 
     // MARK: - Private
 
-    private static func findLastDescendant(
-        _ element: AXUIElement,
-        matching: (AXUIElement) -> Bool,
+    private static func walkLastRecursive<T>(
+        node: T,
+        children: (T) -> [T],
+        matches: (T) -> Bool,
         depth: Int,
-        maxDepth: Int
-    ) -> AXUIElement? {
+        maxDepth: Int,
+        skipRoot: Bool
+    ) -> T? {
         guard depth < maxDepth else { return nil }
-        var best: AXUIElement? = matching(element) ? element : nil
-        let kids = attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
-        for k in kids {
-            if let found = findLastDescendant(k, matching: matching, depth: depth + 1, maxDepth: maxDepth) {
+        // Skip root-level predicate evaluation when requested. Children are still
+        // walked normally — skipRoot is scoped to the current call's root only.
+        var best: T? = (skipRoot && depth == 0) ? nil : (matches(node) ? node : nil)
+        for k in children(node) {
+            if let found = walkLastRecursive(
+                node: k,
+                children: children,
+                matches: matches,
+                depth: depth + 1,
+                maxDepth: maxDepth,
+                skipRoot: false  // only the original root is skippable
+            ) {
                 best = found
             }
         }

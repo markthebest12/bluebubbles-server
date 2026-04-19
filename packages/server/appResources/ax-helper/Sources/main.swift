@@ -114,7 +114,9 @@ case "tapback":
         // (compile-time warning), so compare CFTypeIDs explicitly and fall
         // through to the windows fallback if the type is wrong.
         if CFGetTypeID(focusedAny as CFTypeRef) == AXUIElementGetTypeID() {
-            target = AXHelper.findLastStickerGroup(in: focusedAny as! AXUIElement)
+            // skipRoot: the focused window itself is an AXWindow, never an
+            // AXGroup id='Sticker'. Saves one predicate + two attribute fetches.
+            target = AXHelper.findLastStickerGroup(in: focusedAny as! AXUIElement, skipRoot: true)
         } else {
             writeError("kAXFocusedWindowAttribute returned non-AXUIElement type; falling back to window iteration")
         }
@@ -125,7 +127,9 @@ case "tapback":
         // overwrite `target` with a newer message from a different window,
         // losing the focused-window bias we intend to approximate here.
         for w in windows {
-            if let m = AXHelper.findLastStickerGroup(in: w) {
+            // skipRoot: each element here is an AXWindow from kAXWindowsAttribute;
+            // it cannot match the AXGroup id='Sticker' predicate.
+            if let m = AXHelper.findLastStickerGroup(in: w, skipRoot: true) {
                 target = m
                 break
             }
