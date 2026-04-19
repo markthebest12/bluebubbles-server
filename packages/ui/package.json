@@ -6,7 +6,7 @@
     "scripts": {
         "start": "export BROWSER=none && react-app-rewired start",
         "build": "export NODE_ENV=production && react-app-rewired build",
-        "build-ui": "npm run build && mkdir -p ../server/dist/static && rm -rf ../server/dist/static && cp -R ./build/** ../server/dist/",
+        "build-ui": "npm run build && rm -rf ../server/dist/static && cp -R ./build/** ../server/dist/",
         "lint": "eslint --ext=jsx,js,tsx,ts src"
     },
     "devDependencies": {
