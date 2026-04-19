@@ -22,7 +22,13 @@ let package = Package(
         .testTarget(
             name: "AXHelperTests",
             dependencies: [
-                .product(name: "Testing", package: "swift-testing")
+                .product(name: "Testing", package: "swift-testing"),
+                // Depend on the executable target so unit tests can
+                // `@testable import ax_helper` and exercise internal helpers
+                // (e.g. `AXHelper.walkLast`) directly in-process. Integration
+                // tests in CLITests.swift still fork the built binary — this
+                // dependency does not affect them.
+                .target(name: "ax-helper")
             ],
             path: "Tests/AXHelperTests",
             swiftSettings: [
