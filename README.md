@@ -2,6 +2,8 @@
 
 Fork of [BlueBubblesApp/bluebubbles-server](https://github.com/BlueBubblesApp/bluebubbles-server) with macOS 26 Tahoe compatibility fixes and OpenClaw integration.
 
+> **Integration point:** This server is the iMessage bridge consumed by [`markthebest12/openclaw-infra`](https://github.com/markthebest12/openclaw-infra) — that repo's `scripts/bb-pipeline.sh` builds and deploys this fork onto canon, and its [`docs/imessage-setup.md`](https://github.com/markthebest12/openclaw-infra/blob/main/docs/imessage-setup.md) documents the BlueBubbles channel config (allowFrom, dmPolicy, `dangerouslyAllowPrivateNetwork`). For internal architecture see [`docs/architecture/`](docs/architecture/) — `imessage-send-flow.md` (Tahoe AppleScript path vs. legacy Private API) and `webhook-delivery.md` (event dispatch + retry state machine).
+
 ## Fork Changes
 
 ### macOS 26 Tahoe Fixes
