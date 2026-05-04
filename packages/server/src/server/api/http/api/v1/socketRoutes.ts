@@ -898,40 +898,37 @@ export class SocketRoutes {
                 return response(cb, "error", createBadRequestResponse("Selected message does not exist!"));
             }
 
-            // If the helper is online, use it to send the tapback
-            if (Server().privateApi?.helper) {
-                try {
-                    const sentMessage = await MessageInterface.sendReaction({
-                        chatGuid: params.chatGuid,
-                        message,
-                        reaction: params.tapback,
-                        tempGuid
-                    });
+            // bluebubbles-server#66: pre-flight is delegated to
+            // MessageInterface.sendReaction, which dispatches by macOS version
+            // (ax-helper on macOS 26 Tahoe; Private API on <= macOS 15) and
+            // raises a path-specific error if the chosen subsystem is not
+            // available. The hard-coded `Server().privateApi?.helper` gate
+            // here was unreachable on Tahoe since the DYLIB cannot load.
+            try {
+                const sentMessage = await MessageInterface.sendReaction({
+                    chatGuid: params.chatGuid,
+                    message,
+                    reaction: params.tapback,
+                    tempGuid
+                });
 
-                    return response(
-                        cb,
-                        "tapback-sent",
-                        // No need to load the participants since we sent the message
-                        createSuccessResponse(
-                            await MessageSerializer.serialize({
-                                message: sentMessage,
-                                config: {
-                                    loadChatParticipants: false
-                                }
-                            }),
-                            "Successfully sent reaction!"
-                        )
-                    );
-                } catch (ex: any) {
-                    return response(cb, "send-tapback-error", createServerErrorResponse(ex?.message ?? ex));
-                }
+                return response(
+                    cb,
+                    "tapback-sent",
+                    // No need to load the participants since we sent the message
+                    createSuccessResponse(
+                        await MessageSerializer.serialize({
+                            message: sentMessage,
+                            config: {
+                                loadChatParticipants: false
+                            }
+                        }),
+                        "Successfully sent reaction!"
+                    )
+                );
+            } catch (ex: any) {
+                return response(cb, "send-tapback-error", createServerErrorResponse(ex?.message ?? ex));
             }
-
-            return response(
-                cb,
-                "send-tapback-error",
-                createServerErrorResponse("iMessage Private API Helper is not connected!")
-            );
         });
 
         /**

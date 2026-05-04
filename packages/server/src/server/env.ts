@@ -1,5 +1,6 @@
 import * as macosVersion from "macos-version";
 
+export const isMinTahoe = macosVersion.isGreaterThanOrEqualTo("26.0");
 export const isMinSequoia = macosVersion.isGreaterThanOrEqualTo("15.0");
 export const isMinSonoma = macosVersion.isGreaterThanOrEqualTo("14.0");
 export const isMinVentura = macosVersion.isGreaterThanOrEqualTo("13.0");
