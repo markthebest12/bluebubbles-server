@@ -44,6 +44,11 @@ describe("WebhookService", () => {
         service = new WebhookService();
         // Use 0ms delay in tests so retries resolve instantly
         service.retryBaseDelayMs = 0;
+        // Tighten retry budget to 3 in tests so existing assertions still
+        // pin a small, deterministic number — the production budget is 8
+        // (see bluebubbles-server#71). Tests for the larger budget set
+        // service.maxRetries explicitly.
+        service.maxRetries = 3;
         // Restore default mock behavior after clearAllMocks
         mockGetWebhooks.mockResolvedValue([]);
         mockGetConfig.mockReturnValue("test-password");
@@ -89,6 +94,29 @@ describe("WebhookService", () => {
             ).rejects.toThrow("ECONNREFUSED");
 
             expect(mockedAxios.post).toHaveBeenCalledTimes(3);
+        });
+
+        it("uses default maxRetries=8 when not overridden (bluebubbles-server#71)", () => {
+            // Construct fresh — no override of maxRetries — and assert the
+            // production budget. The beforeEach above sets maxRetries=3 only
+            // to tighten existing tests; this asserts the shipped default.
+            const fresh = new WebhookService();
+            expect(fresh.maxRetries).toBe(8);
+        });
+
+        it("succeeds on the 8th attempt under the production retry budget", async () => {
+            service.maxRetries = 8;
+            // Reject 7 times, succeed on the 8th — verifies 1+2+4+8+16+32+64+128≈255s
+            // of clock-time budget covers the gateway restart window.
+            for (let i = 0; i < 7; i++) {
+                mockedAxios.post.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+            }
+            mockedAxios.post.mockResolvedValueOnce({ status: 200 });
+
+            await (service as any).sendPost("https://example.com/hook", { type: "test", data: {} });
+
+            expect(mockedAxios.post).toHaveBeenCalledTimes(8);
+            expect(service.log.debug).toHaveBeenCalledWith(expect.stringContaining("attempt 7/8"));
         });
 
         it("includes Authorization header when password is configured", async () => {

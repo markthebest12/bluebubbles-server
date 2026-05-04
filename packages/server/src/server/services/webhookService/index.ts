@@ -16,6 +16,14 @@ export class WebhookService extends Loggable {
     /** Base delay in ms for exponential backoff. Override in tests. */
     retryBaseDelayMs = 1000;
 
+    /**
+     * Maximum delivery attempts before giving up. Override in tests.
+     * 8 attempts spread over 1+2+4+8+16+32+64+128 ≈ 255s of backoff covers
+     * a typical openclaw gateway restart (15-30s) with ample margin.
+     * See bluebubbles-server#71.
+     */
+    maxRetries = 8;
+
     async dispatch(event: WebhookEvent) {
         const webhooks = await Server().repo.getWebhooks();
         for (const i of webhooks) {
@@ -41,7 +49,7 @@ export class WebhookService extends Loggable {
             headers["Authorization"] = `Bearer ${password}`;
         }
 
-        const maxRetries = 3;
+        const maxRetries = this.maxRetries;
         const baseDelayMs = this.retryBaseDelayMs;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
