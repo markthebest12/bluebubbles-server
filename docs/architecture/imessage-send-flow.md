@@ -26,7 +26,7 @@ flowchart TD
     K --> L[scripts.sendMessageFallback]
     J --> Z
     L --> Z
-    Z --> M[MessagePromise resolves<br/>via outgoingMessageManager]
+    Z --> M[MessagePromise resolves<br/>via Server.messageManager]
     M --> N[return Message entity]
 
     subgraph LegacyPrivateAPI[Legacy: Private API DYLIB]
@@ -55,9 +55,9 @@ flowchart TD
 
 - **TCC / Accessibility not granted** — `MessagesApp.checkAccessibility()` in `ax-helper/Sources/main.swift` exits with `permission_denied`; `AxService.exec` rejects with that string and the HTTP layer surfaces it. Send itself is unaffected today (AppleScript path), but tapback/mark-read/navigate fail. Re-grant flow lives in the openclaw-infra repo (`docs/runbooks/bb-tcc-regrant.md`) — same root cause as openclaw-infra #1053 but for a closed app, so re-granting after every BB.app upgrade is the only remediation.
 - **Messages.app not running** — ax-helper exits `messages_not_running`; AppleScript path implicitly launches Messages via `tell application "Messages"`, but on Tahoe a fully-quit Messages.app can stall the first send (caught by the timeout/`1002` retry branch in `ActionHandler.sendMessage`).
-- **Conversation not findable / GUID mismatch** — On Tahoe, chat GUIDs are stored as `any;-;<addr>` but AppleScript's `service type` only accepts `iMessage|SMS|RCS`. Without `mapServiceType` (`apple/scripts.ts:16`) the script throws error -1700. Symptom: `ActionHandler.sendMessage` falls through to `sendMessageFallback`, which only works for DMs, then re-throws.
+- **Conversation not findable / GUID mismatch** — On Tahoe, chat GUIDs are stored as `any;-;<addr>` but AppleScript's `service type` only accepts `iMessage|SMS|RCS`. Without the `mapServiceType` export from `apple/scripts.ts` the script throws error -1700. Symptom: `ActionHandler.sendMessage` falls through to `sendMessageFallback`, which only works for DMs, then re-throws.
 - **ax-helper crash / non-zero exit** — `AxService.exec` parses stdout JSON regardless of exit code; if `result.ok === false` it rejects with `result.error`, otherwise classifies `ETIMEDOUT`/`SIGTERM` as `"timeout"`. Send today is not gated on this — only AX-driven endpoints (`/api/v1/ax/*`) are.
-- **Confirmation source** — Send is **not** synchronous over a real ack from `imagent`. `MessageInterface.sendMessageSync` registers a `MessagePromise` against `Server().messageManager` keyed on `(chatGuid, text, sentAt)`, then awaits resolution from the chat.db poller in `databases/imessage/`. Both Private API and AppleScript paths land in chat.db; both rely on the poll to resolve the awaiter.
+- **Confirmation source** — Send is **not** synchronous over a real ack from `imagent`. `MessageInterface.sendMessageSync` registers a `MessagePromise` against `Server().messageManager` keyed on `(chatGuid, text, sentAt)` — and on `subject` when a non-empty subject is supplied (`MessagePromise.isSame()` in `messagePromise.ts` adds subject to the match predicate when both sides are non-empty). It then awaits resolution from the chat.db poller in `databases/imessage/`. Both Private API and AppleScript paths land in chat.db; both rely on the poll to resolve the awaiter.
 
 ## Related
 
