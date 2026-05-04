@@ -5,6 +5,17 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.15.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.15.1) - 2026-05-04
+
+- [`64965b4`](https://github.com/markthebest12/bluebubbles-server/commit/64965b450858f95f9720776ac6a4ac755497b8c9) fix(tapback): route by macOS version — ax-helper on Tahoe, Private API on legacy (closes #66) (#68)
+- [`56e3cca`](https://github.com/markthebest12/bluebubbles-server/commit/56e3cca778af533fb36d8cce99907a4e69368d02) docs(architecture): private-api vs ax-helper operational ownership grid (#67)
+- [`5b43767`](https://github.com/markthebest12/bluebubbles-server/commit/5b43767b404f8cf29659b37e2a1ead38af043262) docs(architecture): iMessage send flow + webhook delivery diagrams (#63)
+- [`274e11f`](https://github.com/markthebest12/bluebubbles-server/commit/274e11f8458dbfd5e464a2407412115790b1a170) perf(ax-helper): skipRoot + traversal tests (closes #58, #59) (#61)
+- [`5590d53`](https://github.com/markthebest12/bluebubbles-server/commit/5590d53272f0cb1f0d790ee1fb5425262ca97157) refactor(ax-helper): consolidate AX tree traversal helpers (#49) (#54)
+- [`274e11f`](https://github.com/markthebest12/bluebubbles-server/commit/274e11f8458dbfd5e464a2407412115790b1a170) perf(ax-helper): skipRoot + traversal tests (closes #58, #59) (#61)
+- [`274e11f`](https://github.com/markthebest12/bluebubbles-server/commit/274e11f8458dbfd5e464a2407412115790b1a170) perf(ax-helper): skipRoot + traversal tests (closes #58, #59) (#61)
+- [`5590d53`](https://github.com/markthebest12/bluebubbles-server/commit/5590d53272f0cb1f0d790ee1fb5425262ca97157) refactor(ax-helper): consolidate AX tree traversal helpers (#49) (#54)
+
 ## [v1.15.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.15.0) - 2026-04-18
 
 - [`5d0208e`](https://github.com/markthebest12/bluebubbles-server/commit/5d0208ee8a78bb6e01c7905f64d6d0ce77c91571) feat: slack deploy notification matching openclaw-infra pipeline (#51)
