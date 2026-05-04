@@ -4,8 +4,8 @@ import { FileSystem } from "@server/fileSystem";
 import { MessagePromise } from "@server/managers/outgoingMessageManager/messagePromise";
 import { Message } from "@server/databases/imessage/entity/Message";
 import { checkPrivateApiStatus, isEmpty, isNotEmpty, resultAwaiter } from "@server/helpers/utils";
-import { isMinMonterey, isMinVentura } from "@server/env";
-import { negativeReactionTextMap, reactionTextMap } from "@server/api/apple/mappings";
+import { isMinMonterey, isMinTahoe, isMinVentura } from "@server/env";
+import { negativeReactionTextMap, reactionTextMap, reactionToAxHelperType } from "@server/api/apple/mappings";
 import { invisibleMediaChar } from "@server/api/http/constants";
 import { ActionHandler } from "@server/api/apple/actions";
 import { rimrafSync } from "rimraf";
@@ -392,7 +392,34 @@ export class MessageInterface {
         tempGuid = null,
         partIndex = 0
     }: SendReactionParams): Promise<Message> {
-        checkPrivateApiStatus();
+        // bluebubbles-server#66: route by macOS version. Tahoe blocks DYLIB
+        // injection so the Private API path is unreachable; ax-helper is the
+        // canonical Tahoe path. On <= macOS 15 the Private API path is still
+        // preferred (higher fidelity, supports negative/remove reactions).
+        const useAxHelper = isMinTahoe;
+
+        // Negative reactions ("-love", etc.) are only supported by Private API.
+        // ax-helper has no remove-tapback semantic today.
+        const reactionKey = reaction as string;
+        const isNegative = reactionKey.startsWith("-");
+        if (useAxHelper && isNegative) {
+            throw new Error(
+                "Removing tapbacks is not supported on macOS 26 (Tahoe) — " +
+                    "ax-helper does not implement a remove semantic. " +
+                    "See bluebubbles-server#66."
+            );
+        }
+
+        if (!useAxHelper) {
+            // Preserve existing pre-flight check for the Private API path.
+            checkPrivateApiStatus();
+        } else if (!Server().axService) {
+            throw new Error(
+                "Cannot send reaction: ax-helper service not initialized on " +
+                    "macOS 26. Verify the ax-helper binary is installed and " +
+                    "AxService initialized successfully at server start."
+            );
+        }
 
         // Rebuild the selected message text to make it what the reaction text
         // would be in the database
@@ -453,25 +480,39 @@ export class MessageInterface {
         const awaiter = new MessagePromise({ chatGuid, text: messageText, isAttachment: false, sentAt: now, tempGuid });
         Server().messageManager.add(awaiter);
 
-        // Send the reaction
-        const result = await Server().privateApi.message.react(chatGuid, message.guid, reaction, partIndex ?? 0);
-        if (!result?.identifier) {
-            throw new Error("Failed to send reaction! No message GUID returned.");
-        } else {
-            Server().log(`Reaction sent with Message GUID: ${result.identifier}`, "debug");
-        }
-
+        // Send the reaction via the path selected above.
         const maxWaitMs = 60000;
-        let retMessage = await resultAwaiter({
-            maxWaitMs,
-            getData: async _ => {
-                return await Server().iMessageRepo.getMessage(result.identifier, true, false);
+        let retMessage: Message;
+        if (useAxHelper) {
+            const axType = reactionToAxHelperType[reactionKey];
+            if (!axType) {
+                throw new Error(`Unsupported reaction for ax-helper path: ${reactionKey}`);
             }
-        });
-
-        // If we can't get the message via the transaction, try via the promise
-        if (!retMessage) {
+            const axResult = await Server().axService.tapback(axType);
+            if (!axResult?.ok) {
+                throw new Error(`ax-helper tapback failed: ${axResult?.error ?? "unknown error"}`);
+            }
+            Server().log(`Tapback applied via ax-helper: type=${axType}`, "debug");
+            // ax-helper does not return a message GUID — rely on chat.db poll
+            // resolution via the MessagePromise registered above.
             retMessage = await awaiter.promise;
+        } else {
+            const result = await Server().privateApi.message.react(chatGuid, message.guid, reaction, partIndex ?? 0);
+            if (!result?.identifier) {
+                throw new Error("Failed to send reaction! No message GUID returned.");
+            }
+            Server().log(`Reaction sent with Message GUID: ${result.identifier}`, "debug");
+            retMessage = await resultAwaiter({
+                maxWaitMs,
+                getData: async _ => {
+                    return await Server().iMessageRepo.getMessage(result.identifier, true, false);
+                }
+            });
+
+            // If we can't get the message via the transaction, try via the promise
+            if (!retMessage) {
+                retMessage = await awaiter.promise;
+            }
         }
 
         // Check if the name changed
@@ -595,20 +636,20 @@ export class MessageInterface {
         query,
         matchType = "contains"
     }: {
-        chatGuid?: string,
-        withChats?: boolean,
-        withAttachments?: boolean,
-        offset?: number,
-        limit?: number,
-        sort?: "ASC" | "DESC",
-        before?: number | null,
-        after?: number | null,
-        where?: DBWhereItem[],
-        query: string,
-        matchType?: "contains" | "exact"
+        chatGuid?: string;
+        withChats?: boolean;
+        withAttachments?: boolean;
+        offset?: number;
+        limit?: number;
+        sort?: "ASC" | "DESC";
+        before?: number | null;
+        after?: number | null;
+        where?: DBWhereItem[];
+        query: string;
+        matchType?: "contains" | "exact";
     }): Promise<[Message[], number]> {
         checkPrivateApiStatus();
-        
+
         const result = await Server().privateApi.message.search(query, matchType);
         if (result?.data?.error) {
             throw new Error(`Failed to search messages: ${result.data.error}`);
