@@ -5,6 +5,12 @@ This changelog is automatically maintained by [Uplift](https://upliftci.dev/).
 
 ## Unreleased
 
+## [v1.16.0](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.16.0) - 2026-05-04
+
+- [`4dd43fd`](https://github.com/markthebest12/bluebubbles-server/commit/4dd43fdc2530246a0608283b646a3c5b4394bed5) feat(webhook): bump retry budget to 8 attempts (~255s, #71) (#72)
+- [`4dd43fd`](https://github.com/markthebest12/bluebubbles-server/commit/4dd43fdc2530246a0608283b646a3c5b4394bed5) feat(webhook): bump retry budget to 8 attempts (~255s, #71) (#72)
+- [`4dd43fd`](https://github.com/markthebest12/bluebubbles-server/commit/4dd43fdc2530246a0608283b646a3c5b4394bed5) feat(webhook): bump retry budget to 8 attempts (~255s, #71) (#72)
+
 ## [v1.15.1](https://github.com/markthebest12/bluebubbles-server/releases/tag/v1.15.1) - 2026-05-04
 
 - [`64965b4`](https://github.com/markthebest12/bluebubbles-server/commit/64965b450858f95f9720776ac6a4ac755497b8c9) fix(tapback): route by macOS version — ax-helper on Tahoe, Private API on legacy (closes #66) (#68)
